@@ -49,5 +49,9 @@
 	<string>We need access to your health data to show your step count</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>We need access to update your health data</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to track your walking route</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to track your walking route</string>
 </dict>
 </plist>
