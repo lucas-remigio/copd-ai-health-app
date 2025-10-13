@@ -33,7 +33,9 @@ class NearbyPlacesCard extends StatelessWidget {
                 (place) => ListTile(
                   leading: const Icon(Icons.place, color: Colors.blue),
                   title: Text(place.name),
-                  subtitle: Text(place.distanceInKm),
+                  subtitle: Text(
+                    '${place.distanceInKm}${place.durationInMinutes.isNotEmpty ? ' • ${place.durationInMinutes}' : ''}',
+                  ),
                 ),
               ),
           ],
