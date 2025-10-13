@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/foundation.dart';
 import '../models/place.dart';
 
 class PlacesService {
@@ -44,10 +45,17 @@ class PlacesService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return (data['places'] as List?)
-              ?.map((place) => Place.fromJson(place))
-              .toList() ??
+      debugPrint('Full API Response: $data');
+
+      final places =
+          (data['places'] as List?)?.map((place) {
+            debugPrint('Place data: $place');
+            return Place.fromJson(place);
+          }).toList() ??
           [];
+
+      debugPrint('Parsed ${places.length} places');
+      return places;
     } else {
       throw Exception('Failed to load places: ${response.statusCode}');
     }

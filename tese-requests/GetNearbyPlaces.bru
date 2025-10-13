@@ -1,0 +1,48 @@
+meta {
+  name: GetNearbyPlaces
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://places.googleapis.com/v1/places:searchNearby
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  X-Goog-Api-Key: {{GoogleApiKey}}
+  X-Goog-FieldMask: places.displayName,places.location,routingSummaries
+}
+
+body:json {
+  {
+    "includedPrimaryTypes": [
+      "cultural_landmark",
+      "park",
+      "tourist_attraction"
+    ],
+    "maxResultCount": 10,
+    "locationRestriction": {
+      "circle": {
+        "center": {
+          "latitude": 39.902066,
+          "longitude": -8.830099
+        },
+        "radius": 5000.0
+      }
+    },
+     "routingParameters": {
+        "origin": {
+          "latitude": 39.902066,
+          "longitude": -8.830099
+        },
+        "travelMode": "WALK"
+      }
+  }
+}
+
+settings {
+  encodeUrl: false
+}

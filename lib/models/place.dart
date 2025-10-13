@@ -7,11 +7,18 @@ class Place {
   Place({required this.name, this.latitude, this.longitude, this.distance});
 
   factory Place.fromJson(Map<String, dynamic> json) {
+    print('Parsing place JSON: $json');
+    final distanceValue =
+        json['routingSummaries']?[0]?['legs']?[0]?['distanceMeters'];
+    print(
+      'Distance value: $distanceValue (type: ${distanceValue.runtimeType})',
+    );
+
     return Place(
       name: json['displayName']?['text'] ?? 'Unknown',
       latitude: json['location']?['latitude'],
       longitude: json['location']?['longitude'],
-      distance: json['routingSummaries']?[0]?['legs']?[0]?['distanceMeters'],
+      distance: distanceValue,
     );
   }
 

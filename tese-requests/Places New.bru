@@ -1,0 +1,27 @@
+meta {
+  name: Places New
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://places.googleapis.com/v1/places:searchText
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  X-Goog-Api-Key: {{GoogleApiKey}}
+  X-Goog-FieldMask: places.displayName,places.formattedAddress,places.priceLevel
+}
+
+body:json {
+  {
+    "textQuery": "Spicy Vegetarian Food in Sydney, Australia"
+  }
+}
+
+settings {
+  encodeUrl: false
+}
