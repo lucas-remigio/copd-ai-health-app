@@ -131,3 +131,5 @@ lib/generated_plugin_registrant.dart
 !/dev/ci/**/Gemfile.lock
 
 .env
+local.properties
+key.properties

@@ -9,6 +9,7 @@ import '../models/place.dart';
 import '../widgets/step_counter_card.dart';
 import '../widgets/location_info_card.dart';
 import '../widgets/nearby_places_card.dart';
+import '../widgets/places_map.dart';
 import '../widgets/error_view.dart';
 
 class StepCounterScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   List<Place> _nearbyPlaces = [];
   String _errorMessage = '';
   bool _isLoadingPlaces = false;
+  bool _hasSearchedPlaces = false;
 
   @override
   void initState() {
@@ -38,7 +40,7 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   Future<void> _initialize() async {
     await _requestPermissions();
     _startListening();
-    await _loadLocationAndPlaces();
+    await _loadLocation();
   }
 
   Future<void> _requestPermissions() async {
@@ -54,14 +56,13 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
     _pedometerService.stepCountStream.listen(_onStepCount, onError: _onError);
   }
 
-  Future<void> _loadLocationAndPlaces() async {
+  Future<void> _loadLocation() async {
     try {
       final position = await _locationService.getCurrentLocation();
       setState(() {
         _currentPosition = position;
         _errorMessage = '';
       });
-      await _fetchNearbyPlaces();
     } catch (e) {
       setState(() => _errorMessage = 'Location error: $e');
       debugPrint('Location error: $e');
@@ -69,7 +70,10 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   }
 
   Future<void> _fetchNearbyPlaces() async {
-    if (_currentPosition == null) return;
+    if (_currentPosition == null) {
+      setState(() => _errorMessage = 'Location not available');
+      return;
+    }
 
     setState(() => _isLoadingPlaces = true);
 
@@ -78,6 +82,8 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
       setState(() {
         _nearbyPlaces = places;
         _isLoadingPlaces = false;
+        _hasSearchedPlaces = true;
+        _errorMessage = '';
       });
     } catch (e) {
       setState(() {
@@ -120,10 +126,30 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
           if (_currentPosition != null)
             LocationInfoCard(
               position: _currentPosition!,
-              onRefresh: _loadLocationAndPlaces,
+              onRefresh: _loadLocation,
             ),
           const SizedBox(height: 24),
-          NearbyPlacesCard(places: _nearbyPlaces, isLoading: _isLoadingPlaces),
+          if (!_hasSearchedPlaces && !_isLoadingPlaces)
+            ElevatedButton.icon(
+              onPressed: _fetchNearbyPlaces,
+              icon: const Icon(Icons.search),
+              label: const Text('Search Nearby Attractions'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+            )
+          else ...[
+            if (_currentPosition != null && _nearbyPlaces.isNotEmpty)
+              PlacesMap(userPosition: _currentPosition!, places: _nearbyPlaces),
+            const SizedBox(height: 24),
+            NearbyPlacesCard(
+              places: _nearbyPlaces,
+              isLoading: _isLoadingPlaces,
+            ),
+          ],
         ],
       ),
     );

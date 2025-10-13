@@ -5,6 +5,17 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Read API key from .env file
+val envFile = rootProject.file("../.env")
+var googleMapsApiKey = "YOUR_API_KEY"
+if (envFile.exists()) {
+    envFile.readLines().forEach { line ->
+        if (line.startsWith("GOOGLE_PLACES_API_KEY=")) {
+            googleMapsApiKey = line.substringAfter("=").trim()
+        }
+    }
+}
+
 android {
     namespace = "com.example.health_test_app"
     compileSdk = 36
@@ -28,6 +39,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Inject API key into manifest
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
     }
 
     buildTypes {
