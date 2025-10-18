@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health_test_app/services/ai_llama_service.dart';
 import '../services/ai_service.dart';
 import 'step_counter_screen.dart';
 
@@ -10,7 +11,7 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
-  final AIService _aiService = AIService();
+  final AILlamaService _aiService = AILlamaService();
   String _status = 'Initializing...';
   double _progress = 0.0;
   bool _hasError = false;

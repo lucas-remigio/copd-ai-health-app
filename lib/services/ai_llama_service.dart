@@ -1,11 +1,13 @@
-import 'package:cactus/cactus.dart';
+import 'dart:async';
+
+import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-class AIService {
-  CactusLM? _model;
+class AILlamaService {
+  LlamaController? _controller;
   bool _isInitialized = false;
   Function(double)? onDownloadProgress;
   DateTime? _lastLogTime;
@@ -16,15 +18,10 @@ class AIService {
   static const String _modelFileName = 'gemma-3n-finetuned-Q4_K_M.gguf';
   static const int _fallbackMinSizeBytes = 2000 * 1024 * 1024; // 2000 MB
 
-  // static const String _modelUrl =
-  //     'https://huggingface.co/Cactus-Compute/Qwen3-600m-Instruct-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf';
-  // static const String _modelFileName = 'Qwen3-0.6B-Q8_0.gguf';
-  // static const int _expectedMinSizeBytes = 300 * 1024 * 1024; // 300 MB
-
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    debugPrint('🤖 Initializing AI model...');
+    debugPrint('🤖 Initializing AI model using LLAMA!...');
 
     // Get file size first for validation
     _totalSizeBytes = await _getFileSize(_modelUrl);
@@ -58,20 +55,39 @@ class AIService {
   }
 
   Future<void> _downloadModel() async {
-    _model = CactusLM();
+    final modelFile = await _getModelFile();
+    if (await modelFile.exists()) return; // Already downloaded
 
-    final totalMB = (_totalSizeBytes! / 1024 / 1024).toStringAsFixed(1);
-    debugPrint('📥 Downloading $totalMB MB...');
-
+    debugPrint('📥 Downloading model...');
     _lastLogTime = DateTime.now();
 
-    final downloaded = await _model!.download(
-      modelUrl: _modelUrl,
-      modelFilename: _modelFileName,
-      onProgress: _handleDownloadProgress,
+    final request = http.Request('GET', Uri.parse(_modelUrl));
+    final response = await request.send();
+
+    if (response.statusCode != 200) {
+      throw Exception('Download failed: ${response.statusCode}');
+    }
+
+    final sink = modelFile.openWrite();
+    int downloadedBytes = 0;
+
+    await response.stream.listen(
+      (chunk) {
+        downloadedBytes += chunk.length;
+        sink.add(chunk);
+
+        final progress = downloadedBytes / _totalSizeBytes!;
+        onDownloadProgress?.call(progress);
+        _logProgress(progress);
+      },
+      onError: (error) {
+        sink.close();
+        if (modelFile.existsSync()) modelFile.deleteSync();
+        throw error;
+      },
+      onDone: () => sink.close(),
     );
 
-    if (!downloaded) throw Exception('Download failed');
     debugPrint('✅ Download complete');
   }
 
@@ -92,14 +108,6 @@ class AIService {
     }
   }
 
-  void _handleDownloadProgress(double? progress, String message, bool isError) {
-    if (progress != null) {
-      onDownloadProgress?.call(progress);
-      _logProgress(progress);
-    }
-    if (isError) debugPrint('❌ $message');
-  }
-
   void _logProgress(double progress) {
     final now = DateTime.now();
     if (_lastLogTime == null || now.difference(_lastLogTime!).inSeconds >= 5) {
@@ -115,35 +123,21 @@ class AIService {
 
   Future<void> _loadModel() async {
     debugPrint('🔧 Loading model...');
-    debugPrint('📍 Model path: ${await _getModelFile().then((f) => f.path)}');
 
-    final file = await _getModelFile();
-    final size = await file.length();
-    debugPrint('📦 File size: ${(size / 1024 / 1024).toStringAsFixed(2)} MB');
+    final modelPath = (await _getModelFile()).path;
+    debugPrint('📍 Model path: $modelPath');
 
     try {
-      final initialized = await _model!.init(
-        modelFilename: _modelFileName,
-        contextSize: 2048,
+      _controller = LlamaController();
+      await _controller!.loadModel(
+        modelPath: modelPath,
         threads: 4,
-        gpuLayers: 0,
-        onProgress: (progress, message, isError) {
-          debugPrint(
-            '🐛 Cactus progress: $progress, $message, error: $isError',
-          );
-        },
+        contextSize: 2048,
       );
-
-      if (!initialized) {
-        debugPrint('❌ Init returned false - check Cactus logs above');
-        throw Exception('Model init failed');
-      }
 
       debugPrint('✅ Model loaded successfully');
     } catch (e) {
       debugPrint('❌ Model loading failed: $e');
-      debugPrint('🔍 Exception type: ${e.runtimeType}');
-      debugPrint('🔍 Stack trace: ${e.toString()}');
       rethrow;
     }
   }
@@ -179,18 +173,38 @@ class AIService {
 
   Future<String> getTestResponse() async {
     if (!_isInitialized) await initialize();
+    if (_controller == null) throw Exception('Model not loaded');
 
     debugPrint('🎯 Testing model...');
 
-    final messages = [
-      ChatMessage(role: 'system', content: 'You are a helpful assistant.'),
-      ChatMessage(role: 'user', content: 'What is the capital of France?'),
-    ];
+    const prompt =
+        "System: You are a helpful assistant.\nUser: What is the capital of France?\nAssistant:";
 
     try {
-      final response = await _model!.completion(messages, maxTokens: 50);
-      debugPrint('✅ Response: ${response.text}');
-      return response.text;
+      String fullResponse = '';
+      StreamSubscription? subscription;
+
+      subscription = _controller!
+          .generate(prompt: prompt, maxTokens: 50, temperature: 0.7)
+          .listen(
+            (token) {
+              fullResponse += token;
+              debugPrint('Token: $token'); // Optional: log each token
+            },
+            onDone: () {
+              debugPrint('✅ Generation complete!');
+              debugPrint('Full Response: $fullResponse');
+            },
+            onError: (error) {
+              debugPrint('❌ Error during generation: $error');
+              throw error;
+            },
+          );
+
+      // Wait for the stream to complete
+      await subscription.asFuture();
+
+      return fullResponse;
     } catch (e) {
       debugPrint('❌ Error: $e');
       return 'Test failed: $e';
@@ -198,7 +212,7 @@ class AIService {
   }
 
   void dispose() {
-    _model?.dispose();
+    _controller?.dispose();
     _isInitialized = false;
   }
 }
