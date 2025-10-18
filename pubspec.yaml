@@ -7,11 +7,13 @@ environment:
   sdk: ^3.8.1
 
 dependencies:
+  cactus: ^0.2.4
   flutter:
     sdk: flutter
   flutter_dotenv: ^6.0.0
   geolocator: ^14.0.2
   google_maps_flutter: ^2.13.1
+  path_provider: ^2.1.5
   http: ^1.5.0
   pedometer: ^4.0.2
   permission_handler: ^11.3.1

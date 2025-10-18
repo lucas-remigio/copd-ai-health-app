@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health_test_app/services/ai_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,7 +15,9 @@ import '../widgets/error_view.dart';
 import '../widgets/ai_recommendation_card.dart';
 
 class StepCounterScreen extends StatefulWidget {
-  const StepCounterScreen({super.key});
+  final AIService aiService;
+
+  const StepCounterScreen({super.key, required this.aiService});
 
   @override
   State<StepCounterScreen> createState() => _StepCounterScreenState();
