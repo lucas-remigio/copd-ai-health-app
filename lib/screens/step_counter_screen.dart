@@ -5,12 +5,14 @@ import 'package:geolocator/geolocator.dart';
 import '../services/location_service.dart';
 import '../services/places_service.dart';
 import '../services/pedometer_service.dart';
+import '../services/ai_service.dart';
 import '../models/place.dart';
 import '../widgets/step_counter_card.dart';
 import '../widgets/location_info_card.dart';
 import '../widgets/nearby_places_card.dart';
 import '../widgets/places_map.dart';
 import '../widgets/error_view.dart';
+import '../widgets/ai_recommendation_card.dart';
 
 class StepCounterScreen extends StatefulWidget {
   const StepCounterScreen({super.key});
@@ -23,6 +25,7 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   final _locationService = LocationService();
   final _placesService = PlacesService();
   final _pedometerService = PedometerService();
+  final _aiService = AIService();
 
   int _stepCount = 0;
   Position? _currentPosition;
@@ -30,6 +33,8 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   String _errorMessage = '';
   bool _isLoadingPlaces = false;
   bool _hasSearchedPlaces = false;
+  String _aiRecommendation = '';
+  bool _isLoadingAI = false;
 
   @override
   void initState() {
@@ -85,12 +90,40 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
         _hasSearchedPlaces = true;
         _errorMessage = '';
       });
+
+      // Automatically get AI recommendation after places are loaded
+      await _getAIRecommendation();
     } catch (e) {
       setState(() {
         _errorMessage = 'Error fetching places: $e';
         _isLoadingPlaces = false;
       });
       debugPrint('Error fetching places: $e');
+    }
+  }
+
+  Future<void> _getAIRecommendation() async {
+    if (_nearbyPlaces.isEmpty) return;
+
+    setState(() => _isLoadingAI = true);
+
+    try {
+      final recommendation = await _aiService.getWalkRecommendation(
+        currentSteps: _stepCount,
+        goalSteps: 10000, // You can make this configurable later
+        nearbyPlaces: _nearbyPlaces.map((p) => p.name).toList(),
+      );
+
+      setState(() {
+        _aiRecommendation = recommendation;
+        _isLoadingAI = false;
+      });
+    } catch (e) {
+      setState(() {
+        _aiRecommendation = 'Error getting AI recommendation: $e';
+        _isLoadingAI = false;
+      });
+      debugPrint('AI error: $e');
     }
   }
 
@@ -104,6 +137,12 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   void _onError(dynamic error) {
     setState(() => _errorMessage = 'Error: $error');
     debugPrint('Pedometer error: $error');
+  }
+
+  @override
+  void dispose() {
+    _aiService.dispose();
+    super.dispose();
   }
 
   @override
@@ -142,8 +181,15 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
               ),
             )
           else ...[
-            if (_currentPosition != null && _nearbyPlaces.isNotEmpty)
+            if (_currentPosition != null && _nearbyPlaces.isNotEmpty) ...[
               PlacesMap(userPosition: _currentPosition!, places: _nearbyPlaces),
+              const SizedBox(height: 24),
+              AIRecommendationCard(
+                recommendation: _aiRecommendation,
+                isLoading: _isLoadingAI,
+                onRefresh: _getAIRecommendation,
+              ),
+            ],
             const SizedBox(height: 24),
             NearbyPlacesCard(
               places: _nearbyPlaces,
