@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/ai_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:geolocator/geolocator.dart';
@@ -35,6 +34,9 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   String _errorMessage = '';
   bool _isLoadingPlaces = false;
   bool _hasSearchedPlaces = false;
+  String _recommendation = ''; // Store the AI recommendation
+  bool _isLoadingRecommendation = false; // Loading state for recommendation
+  String _streamingRecommendation = ''; // Streaming text from ai
 
   @override
   void initState() {
@@ -80,7 +82,10 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
       return;
     }
 
-    setState(() => _isLoadingPlaces = true);
+    setState(() {
+      _isLoadingPlaces = true;
+      _isLoadingRecommendation = true; // Start loading recommendation
+    });
 
     try {
       final places = await _placesService.fetchNearbyPlaces(_currentPosition!);
@@ -91,11 +96,33 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
         _errorMessage = '';
       });
 
-      // Automatically get AI recommendation after places are loaded
+      setState(() {
+        _recommendation = ''; // Reset full recommendation
+        _streamingRecommendation = ''; // Reset streaming text
+      });
+
+      // Get AI recommendation
+      final recommendation = await widget.aiService.getHealthRecommendation(
+        _stepCount,
+        10000,
+        places,
+        onToken: (token) {
+          // New: Update UI for each token
+          setState(() {
+            _streamingRecommendation += token;
+          });
+        },
+      );
+
+      setState(() {
+        _recommendation = recommendation;
+        _isLoadingRecommendation = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Error fetching places: $e';
         _isLoadingPlaces = false;
+        _isLoadingRecommendation = false;
       });
       debugPrint('Error fetching places: $e');
     }
@@ -158,10 +185,18 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
               PlacesMap(userPosition: _currentPosition!, places: _nearbyPlaces),
               const SizedBox(height: 24),
             ],
-            const SizedBox(height: 24),
             NearbyPlacesCard(
               places: _nearbyPlaces,
               isLoading: _isLoadingPlaces,
+            ),
+            const SizedBox(height: 24),
+            // New: Display AI Recommendation
+            AIRecommendationCard(
+              recommendation: _recommendation,
+              isLoading: _isLoadingRecommendation,
+              streamingText:
+                  _streamingRecommendation, // New: Pass streaming text
+              onRefresh: _fetchNearbyPlaces,
             ),
           ],
         ],

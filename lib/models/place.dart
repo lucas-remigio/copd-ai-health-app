@@ -36,4 +36,10 @@ class Place {
     final minutes = (duration! / 60).round();
     return '~$minutes min walk';
   }
+
+  String get distanceInSteps {
+    if (distance == null) return 'Distance unknown';
+    final steps = (distance! / 0.762).round(); // Average step length ~0.762m
+    return '$steps steps away';
+  }
 }

@@ -13,6 +13,7 @@ class LoadingScreen extends StatefulWidget {
 class _LoadingScreenState extends State<LoadingScreen> {
   final AILlamaService _aiService = AILlamaService();
   String _status = 'Initializing...';
+  String _streamingTestResponse = ''; // New: For streaming test response
   double _progress = 0.0;
   bool _hasError = false;
 
@@ -43,9 +44,18 @@ class _LoadingScreenState extends State<LoadingScreen> {
       setState(() {
         _status = 'Testing AI model...';
         _progress = 1.0;
+        _streamingTestResponse = ''; // Reset streaming
       });
 
-      final testResponse = await _aiService.getTestResponse();
+      final testResponse = await _aiService.getTestResponse(
+        onToken: (token) {
+          // New: Stream tokens to UI
+          setState(() {
+            _streamingTestResponse += token;
+            _status = 'Testing AI model...\nStreaming: $_streamingTestResponse';
+          });
+        },
+      );
 
       setState(() {
         _status = 'AI Response:\n$testResponse';

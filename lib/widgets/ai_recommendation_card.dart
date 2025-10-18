@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class AIRecommendationCard extends StatelessWidget {
   final String recommendation;
   final bool isLoading;
+  final String streamingText; // New: Streaming text
   final VoidCallback onRefresh;
 
   const AIRecommendationCard({
     super.key,
     required this.recommendation,
     required this.isLoading,
+    this.streamingText = '', // Default empty
     required this.onRefresh,
   });
 
@@ -47,19 +49,24 @@ class AIRecommendationCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 8),
             if (isLoading)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
-                      CircularProgressIndicator(color: Colors.green),
-                      SizedBox(height: 16),
+                      const CircularProgressIndicator(color: Colors.green),
+                      const SizedBox(height: 16),
                       Text(
-                        'AI is analyzing your options...',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        streamingText.isNotEmpty
+                            ? streamingText // Show streaming text
+                            : 'AI is analyzing your options...',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
-                      SizedBox(height: 8),
-                      Text(
+                      const SizedBox(height: 8),
+                      const Text(
                         'This may take 10-30 seconds',
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),

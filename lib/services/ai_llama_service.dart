@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:health_test_app/models/place.dart';
 import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+
+typedef TokenCallback = void Function(String token);
 
 class AILlamaService {
   LlamaController? _controller;
@@ -171,25 +174,27 @@ class AILlamaService {
     return File('${appDir.path}/$_modelFileName');
   }
 
-  Future<String> getTestResponse() async {
+  // In ai_llama_service.dart
+  Future<String> getTestResponse({TokenCallback? onToken}) async {
     if (!_isInitialized) await initialize();
     if (_controller == null) throw Exception('Model not loaded');
 
     debugPrint('🎯 Testing model...');
 
     const prompt =
-        "System: You are a helpful assistant.\nUser: What is the capital of France?\nAssistant:";
+        "System: You are a helpful assistant. Answer in 1 word and 1 emoji.\nUser: Say hi\nAssistant:";
 
     try {
       String fullResponse = '';
       StreamSubscription? subscription;
 
       subscription = _controller!
-          .generate(prompt: prompt, maxTokens: 50, temperature: 0.7)
+          .generate(prompt: prompt, maxTokens: 5, temperature: 0.7)
           .listen(
             (token) {
               fullResponse += token;
-              debugPrint('Token: $token'); // Optional: log each token
+              debugPrint('Token: $token');
+              onToken?.call(token); // Stream each token
             },
             onDone: () {
               debugPrint('✅ Generation complete!');
@@ -201,13 +206,89 @@ class AILlamaService {
             },
           );
 
-      // Wait for the stream to complete
       await subscription.asFuture();
-
       return fullResponse;
     } catch (e) {
       debugPrint('❌ Error: $e');
       return 'Test failed: $e';
+    }
+  }
+
+  String _buildHealthRecommendationPrompt(
+    int steps,
+    int goal,
+    List<String> formattedPlaces,
+  ) {
+    final neededSteps = goal - steps > 0 ? goal - steps : 0;
+    return """
+      System: You are a friendly health assistant. Based on the user's current steps, daily goal, and nearby places (with distances in steps), suggest ONE specific place to walk to today. 
+      Choose the place with the HIGHEST number of steps among the nearby places to maximize their progress towards the goal, without overexceeding. 
+      Calculate how many steps they need to reach their goal and explain how walking to this place helps them get closer. 
+      Keep your response concise, motivating, and under 100 words.
+
+      User: I have walked $steps steps so far today. My daily goal is $goal steps, so I need $neededSteps more steps. Nearby places: ${formattedPlaces.join(', ')}. 
+      Suggest a place for me to walk to today to help me reach my goal.
+
+      Assistant:""";
+  }
+
+  // Add this method to AILlamaService
+  Future<String> getHealthRecommendation(
+    int steps,
+    int goal,
+    List<Place> places, {
+    TokenCallback? onToken,
+  }) async {
+    if (!_isInitialized) await initialize();
+    if (_controller == null) throw Exception('Model not loaded');
+
+    final formattedPlaces = places
+        .map(
+          (place) =>
+              '${place.name} (${place.distanceInSteps} • ${place.durationInMinutes})',
+        )
+        .toList();
+
+    debugPrint('🏥 Generating health recommendation...');
+
+    // In ai_llama_service.dart, update the prompt in getHealthRecommendation to ensure it recommends a place that maximizes steps
+    final prompt = _buildHealthRecommendationPrompt(
+      steps,
+      goal,
+      formattedPlaces,
+    );
+
+    debugPrint('🤖 Prompt: $prompt');
+
+    try {
+      String fullResponse = '';
+      int maxTokens = 100;
+      int tokenCount = 0; // Add counter
+      StreamSubscription? subscription;
+
+      subscription = _controller!
+          .generate(prompt: prompt, maxTokens: maxTokens, temperature: 0.7)
+          .listen(
+            (token) {
+              fullResponse += token;
+              tokenCount++; // Increment counter
+              int tokensLeft = 100 - tokenCount; // Calculate remaining
+              debugPrint(
+                'Token $tokenCount: $token (Tokens left: $tokensLeft)',
+              );
+              onToken?.call(token); // Call the callback with each token
+            },
+            onDone: () => debugPrint(
+              '✅ Recommendation generated! \nPrompt: $prompt, \nResponse: $fullResponse',
+            ),
+            onError: (error) => throw error,
+          );
+
+      await subscription.asFuture();
+      return fullResponse.trim();
+    } catch (e) {
+      debugPrint('❌ Error: $e');
+      return 'Failed to generate recommendation: $e';
     }
   }
 

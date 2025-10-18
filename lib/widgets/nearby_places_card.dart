@@ -34,7 +34,7 @@ class NearbyPlacesCard extends StatelessWidget {
                   leading: const Icon(Icons.place, color: Colors.blue),
                   title: Text(place.name),
                   subtitle: Text(
-                    '${place.distanceInKm}${place.durationInMinutes.isNotEmpty ? ' • ${place.durationInMinutes}' : ''}',
+                    '${place.distanceInKm} • ${place.distanceInSteps}${place.durationInMinutes.isNotEmpty ? ' • ${place.durationInMinutes}' : ''}',
                   ),
                 ),
               ),
