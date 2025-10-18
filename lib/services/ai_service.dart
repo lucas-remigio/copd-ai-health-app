@@ -1,6 +1,5 @@
 import 'package:cactus/cactus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
@@ -8,132 +7,97 @@ class AIService {
   CactusLM? _model;
   bool _isInitialized = false;
   Function(double)? onDownloadProgress;
+  DateTime? _lastLogTime;
+
+  // static const String _modelUrl =
+  //     'https://huggingface.co/lucasxvr/quantized_gemma3n_finetuned_health_test/resolve/main/gemma-3n-finetuned-Q4_K_M.gguf';
+  // static const String _modelFileName = 'gemma-3n-finetuned-Q4_K_M.gguf';
 
   static const String _modelUrl =
-      'https://huggingface.co/lucasxvr/quantized_gemma3n_finetuned_health_test/resolve/main/gemma-3n-finetuned-Q4_K_M.gguf';
-  static const String _modelFileName = 'gemma-3n-finetuned-Q4_K_M.gguf';
+      'https://huggingface.co/Cactus-Compute/Qwen3-600m-Instruct-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf';
+  static const String _modelFileName = 'Qwen3-0.6B-Q8_0.gguf';
+  static const int _expectedMinSizeBytes = 300 * 1024 * 1024; // 300 MB
 
-  // Initialize the AI model
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     debugPrint('🤖 Initializing AI model...');
 
-    final modelPath = await _downloadModel();
-    await _loadModel(modelPath);
+    // Check and delete corrupted file before download
+    await _validateCachedModel();
+
+    _model = CactusLM();
+
+    debugPrint(
+      '📥 Downloading model (${_expectedMinSizeBytes / 1024 / 1024}MB)...',
+    );
+    _lastLogTime = DateTime.now();
+
+    final downloaded = await _model!.download(
+      modelUrl: _modelUrl,
+      modelFilename: _modelFileName,
+      onProgress: (progress, message, isError) {
+        if (progress != null) {
+          onDownloadProgress?.call(progress);
+
+          // Log every 5 seconds
+          final now = DateTime.now();
+          if (_lastLogTime == null ||
+              now.difference(_lastLogTime!).inSeconds >= 5) {
+            debugPrint('📊 ${(progress * 100).toStringAsFixed(1)}%');
+            _lastLogTime = now;
+          }
+        }
+        if (isError) debugPrint('❌ $message');
+      },
+    );
+
+    if (!downloaded) {
+      throw Exception('Failed to download model');
+    }
+
+    debugPrint('✅ Download complete');
+
+    debugPrint('🔧 Loading model into memory...');
+    final initialized = await _model!.init(
+      modelFilename: _modelFileName,
+      contextSize: 2048,
+      threads: 4,
+      gpuLayers: 0,
+    );
+
+    if (!initialized) {
+      throw Exception('Failed to initialize model');
+    }
 
     _isInitialized = true;
     debugPrint('✅ AI model ready!');
   }
 
-  // Download model with progress tracking
-  Future<String> _downloadModel() async {
-    final modelFile = await _getModelFile();
-
-    if (await modelFile.exists()) {
-      debugPrint('✅ Model found at: ${modelFile.path}');
-      return modelFile.path;
-    }
-
-    debugPrint('📥 Downloading model (5-10 min)...');
-    await _downloadWithProgress(modelFile);
-    return modelFile.path;
-  }
-
-  // Get model file path - FIXED
-  Future<File> _getModelFile() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final modelPath = '${appDir.path}/$_modelFileName';
-    debugPrint('📁 Model path: $modelPath');
-    return File(modelPath);
-  }
-
-  // Download with throttled progress updates
-  Future<void> _downloadWithProgress(File modelFile) async {
-    final request = http.Request('GET', Uri.parse(_modelUrl));
-    final response = await request.send();
-
-    if (response.statusCode != 200) {
-      throw Exception('Download failed: ${response.statusCode}');
-    }
-
-    final contentLength = response.contentLength ?? 0;
-    final sink = modelFile.openWrite();
-    int downloadedBytes = 0;
-    DateTime lastLogTime = DateTime.now();
-
+  Future<void> _validateCachedModel() async {
     try {
-      await response.stream
-          .listen(
-            (chunk) {
-              downloadedBytes += chunk.length;
-              sink.add(chunk);
+      final appDir = await getApplicationDocumentsDirectory();
+      final modelFile = File('${appDir.path}/$_modelFileName');
 
-              // Log every 5 seconds
-              final now = DateTime.now();
-              if (now.difference(lastLogTime).inSeconds >= 5) {
-                _logProgress(downloadedBytes, contentLength);
-                lastLogTime = now;
-              }
+      if (await modelFile.exists()) {
+        final fileSize = await modelFile.length();
+        final sizeMB = (fileSize / 1024 / 1024).toStringAsFixed(1);
 
-              // Update UI callback
-              if (contentLength > 0) {
-                onDownloadProgress?.call(downloadedBytes / contentLength);
-              }
-            },
-            onError: (error) async {
-              await sink.close();
-              if (await modelFile.exists()) await modelFile.delete();
-              throw error;
-            },
-          )
-          .asFuture();
+        debugPrint('📁 Found cached model: $sizeMB MB');
 
-      await sink.close();
-      debugPrint('✅ Download complete');
+        if (fileSize < _expectedMinSizeBytes) {
+          debugPrint('⚠️ File is corrupted (too small), deleting...');
+          await modelFile.delete();
+          debugPrint('🗑️ Corrupted file deleted');
+        } else {
+          debugPrint('✅ Cached model is valid');
+        }
+      }
     } catch (e) {
-      debugPrint('❌ Download failed: $e');
-      rethrow;
+      debugPrint('⚠️ Error validating cache: $e');
     }
   }
 
-  // Log download progress
-  void _logProgress(int downloaded, int total) {
-    final percent = ((downloaded / total) * 100).toStringAsFixed(1);
-    final mb = (downloaded / 1024 / 1024).toStringAsFixed(1);
-    final totalMb = (total / 1024 / 1024).toStringAsFixed(1);
-    debugPrint('📊 $percent% ($mb / $totalMb MB)');
-  }
-
-  // Load model into memory
-  Future<void> _loadModel(String modelPath) async {
-    debugPrint('🔧 Loading model from: $modelPath');
-
-    // Verify file exists
-    final file = File(modelPath);
-    if (!await file.exists()) {
-      throw Exception('Model file not found at: $modelPath');
-    }
-
-    final fileSize = await file.length();
-    debugPrint(
-      '📦 Model file size: ${(fileSize / 1024 / 1024).toStringAsFixed(1)} MB',
-    );
-
-    try {
-      _model = CactusLM();
-      await _model!.init(
-        modelFilename: modelPath,
-        contextSize: 2048,
-        threads: 4,
-      );
-    } catch (e) {
-      debugPrint('❌ Model loading failed: $e');
-      rethrow;
-    }
-  }
-
-  // Test model with simple query
   Future<String> getTestResponse() async {
     if (!_isInitialized) await initialize();
 
