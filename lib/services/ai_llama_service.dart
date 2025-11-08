@@ -74,24 +74,30 @@ class AILlamaService {
     final sink = modelFile.openWrite();
     int downloadedBytes = 0;
 
-    await response.stream.listen(
-      (chunk) {
+    try {
+      // Use await for to properly wait for stream completion
+      await for (var chunk in response.stream) {
         downloadedBytes += chunk.length;
         sink.add(chunk);
 
         final progress = downloadedBytes / _totalSizeBytes!;
         onDownloadProgress?.call(progress);
         _logProgress(progress);
-      },
-      onError: (error) {
-        sink.close();
-        if (modelFile.existsSync()) modelFile.deleteSync();
-        throw error;
-      },
-      onDone: () => sink.close(),
-    );
+      }
 
-    debugPrint('✅ Download complete');
+      await sink.flush(); // Ensure all data is written
+      await sink.close(); // Close the sink
+
+      debugPrint('✅ Download complete');
+      debugPrint(
+        '📦 Final size: ${(downloadedBytes / 1024 / 1024).toStringAsFixed(2)} MB',
+      );
+    } catch (e) {
+      await sink.close();
+      if (await modelFile.exists()) await modelFile.delete();
+      debugPrint('❌ Download failed: $e');
+      rethrow;
+    }
   }
 
   Future<int> _getFileSize(String url) async {
