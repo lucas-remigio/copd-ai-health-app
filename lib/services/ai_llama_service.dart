@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:health_test_app/models/ai_model.dart';
 import 'package:health_test_app/models/place.dart';
 import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:flutter/foundation.dart';
@@ -15,19 +16,26 @@ class AILlamaService {
   Function(double)? onDownloadProgress;
   DateTime? _lastLogTime;
   int? _totalSizeBytes;
+  AIModelConfig _currentModel; // Current model being used
 
-  static const String _modelUrl =
-      'https://huggingface.co/lucasxvr/quantized_gemma3n_finetuned_health_test/resolve/main/gemma-3n-finetuned-Q4_K_M.gguf';
-  static const String _modelFileName = 'gemma-3n-finetuned-Q4_K_M.gguf';
-  static const int _fallbackMinSizeBytes = 2000 * 1024 * 1024; // 2000 MB
+  AILlamaService({AIModelConfig? model})
+    : _currentModel =
+          model ?? AIModelConfig.gemma3_1b; // Default to small model
 
-  Future<void> initialize() async {
+  // Getter for current model info
+  AIModelConfig get currentModel => _currentModel;
+
+  Future<void> initialize({AIModelConfig? model}) async {
+    if (model != null) {
+      _currentModel = model;
+      _isInitialized = false; // Reset if switching models
+    }
+
     if (_isInitialized) return;
 
-    debugPrint('🤖 Initializing AI model using LLAMA!...');
+    debugPrint('🤖 Initializing ${_currentModel.name}...');
 
-    // Get file size first for validation
-    _totalSizeBytes = await _getFileSize(_modelUrl);
+    _totalSizeBytes = await _getFileSize(_currentModel.url);
 
     await _validateCachedModel();
     await _downloadModel();
@@ -35,7 +43,7 @@ class AILlamaService {
     await _loadModel();
 
     _isInitialized = true;
-    debugPrint('✅ AI model ready!');
+    debugPrint('✅ ${_currentModel.name} ready!');
   }
 
   Future<void> _validateCachedModel() async {
@@ -46,7 +54,9 @@ class AILlamaService {
     final sizeMB = (fileSize / 1024 / 1024).toStringAsFixed(1);
     final expectedMB = (_totalSizeBytes! / 1024 / 1024).toStringAsFixed(1);
 
-    debugPrint('📁 Found cached model: $sizeMB MB (expected: $expectedMB MB)');
+    debugPrint(
+      '📁 Found cached ${_currentModel.name}: $sizeMB MB (expected: $expectedMB MB)',
+    );
 
     if (fileSize < _totalSizeBytes!) {
       debugPrint('⚠️ Corrupted file (incomplete), deleting...');
@@ -59,12 +69,12 @@ class AILlamaService {
 
   Future<void> _downloadModel() async {
     final modelFile = await _getModelFile();
-    if (await modelFile.exists()) return; // Already downloaded
+    if (await modelFile.exists()) return;
 
-    debugPrint('📥 Downloading model...');
+    debugPrint('📥 Downloading ${_currentModel.name}...');
     _lastLogTime = DateTime.now();
 
-    final request = http.Request('GET', Uri.parse(_modelUrl));
+    final request = http.Request('GET', Uri.parse(_currentModel.url));
     final response = await request.send();
 
     if (response.statusCode != 200) {
@@ -75,7 +85,6 @@ class AILlamaService {
     int downloadedBytes = 0;
 
     try {
-      // Use await for to properly wait for stream completion
       await for (var chunk in response.stream) {
         downloadedBytes += chunk.length;
         sink.add(chunk);
@@ -85,10 +94,10 @@ class AILlamaService {
         _logProgress(progress);
       }
 
-      await sink.flush(); // Ensure all data is written
-      await sink.close(); // Close the sink
+      await sink.flush();
+      await sink.close();
 
-      debugPrint('✅ Download complete');
+      debugPrint('✅ ${_currentModel.name} download complete');
       debugPrint(
         '📦 Final size: ${(downloadedBytes / 1024 / 1024).toStringAsFixed(2)} MB',
       );
@@ -110,10 +119,10 @@ class AILlamaService {
         }
       }
       debugPrint('⚠️ Could not get content-length, using fallback');
-      return _fallbackMinSizeBytes;
+      return _currentModel.fallbackSizeBytes;
     } catch (e) {
       debugPrint('⚠️ Could not get file size: $e, using fallback');
-      return _fallbackMinSizeBytes;
+      return _currentModel.fallbackSizeBytes;
     }
   }
 
@@ -124,14 +133,14 @@ class AILlamaService {
           .toStringAsFixed(1);
       final totalMB = (_totalSizeBytes! / 1024 / 1024).toStringAsFixed(1);
       debugPrint(
-        '📊 $downloadedMB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)',
+        '📊 ${_currentModel.name}: $downloadedMB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)',
       );
       _lastLogTime = now;
     }
   }
 
   Future<void> _loadModel() async {
-    debugPrint('🔧 Loading model...');
+    debugPrint('🔧 Loading ${_currentModel.name}...');
 
     final modelPath = (await _getModelFile()).path;
     debugPrint('📍 Model path: $modelPath');
@@ -144,7 +153,7 @@ class AILlamaService {
         contextSize: 2048,
       );
 
-      debugPrint('✅ Model loaded successfully');
+      debugPrint('✅ ${_currentModel.name} loaded successfully');
     } catch (e) {
       debugPrint('❌ Model loading failed: $e');
       rethrow;
@@ -160,7 +169,7 @@ class AILlamaService {
 
     final size = await file.length();
     debugPrint(
-      '📦 Downloaded file size: ${(size / 1024 / 1024).toStringAsFixed(2)} MB',
+      '📦 ${_currentModel.name} file size: ${(size / 1024 / 1024).toStringAsFixed(2)} MB',
     );
     debugPrint(
       '📦 Expected size: ${(_totalSizeBytes! / 1024 / 1024).toStringAsFixed(2)} MB',
@@ -177,7 +186,37 @@ class AILlamaService {
 
   Future<File> _getModelFile() async {
     final appDir = await getApplicationDocumentsDirectory();
-    return File('${appDir.path}/$_modelFileName');
+    return File('${appDir.path}/${_currentModel.fileName}');
+  }
+
+  // Method to switch models
+  Future<void> switchModel(AIModelConfig newModel) async {
+    debugPrint('🔄 Switching from ${_currentModel.name} to ${newModel.name}');
+
+    // Dispose current model
+    _controller?.dispose();
+    _isInitialized = false;
+
+    // Initialize new model
+    await initialize(model: newModel);
+  }
+
+  // Method to delete a specific model file
+  Future<void> deleteModelFile(AIModelConfig model) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/${model.fileName}');
+
+    if (await file.exists()) {
+      await file.delete();
+      debugPrint('🗑️ Deleted ${model.name}');
+    }
+  }
+
+  // Method to check if model is downloaded
+  Future<bool> isModelDownloaded(AIModelConfig model) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/${model.fileName}');
+    return await file.exists();
   }
 
   // In ai_llama_service.dart
@@ -211,7 +250,6 @@ class AILlamaService {
               throw error;
             },
           );
-
       await subscription.asFuture();
       return fullResponse;
     } catch (e) {
