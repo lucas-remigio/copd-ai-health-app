@@ -8,21 +8,20 @@ class StepMethodIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final info = stepService.methodInfo;
+
     return Card(
-      color: stepService.methodColor,
+      color: info.backgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            Icon(stepService.methodIcon, color: stepService.methodIconColor),
+            Icon(info.icon, color: info.iconColor),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                stepService.methodDescription,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: stepService.methodTextColor,
-                ),
+                info.description,
+                style: TextStyle(fontSize: 12, color: info.textColor),
               ),
             ),
           ],
