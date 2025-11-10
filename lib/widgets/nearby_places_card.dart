@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/place.dart';
+import '../utils/map_utils.dart';
 
 class NearbyPlacesCard extends StatelessWidget {
   final List<Place> places;
@@ -10,6 +11,29 @@ class NearbyPlacesCard extends StatelessWidget {
     required this.places,
     required this.isLoading,
   });
+
+  Future<void> _openInGoogleMaps(BuildContext context, Place place) async {
+    if (place.latitude == null || place.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location not available for this place')),
+      );
+      return;
+    }
+
+    try {
+      await MapUtils.openGoogleMapsDirections(
+        destinationLat: place.latitude!,
+        destinationLng: place.longitude!,
+        placeName: place.name,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open Google Maps: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +60,8 @@ class NearbyPlacesCard extends StatelessWidget {
                   subtitle: Text(
                     '${place.distanceInKm} • ${place.distanceInSteps}${place.durationInMinutes.isNotEmpty ? ' • ${place.durationInMinutes}' : ''}',
                   ),
+                  trailing: const Icon(Icons.directions, color: Colors.blue),
+                  onTap: () => _openInGoogleMaps(context, place),
                 ),
               ),
           ],

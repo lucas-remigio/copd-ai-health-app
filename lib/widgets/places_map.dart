@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/place.dart';
+import '../utils/map_utils.dart';
 
 class PlacesMap extends StatefulWidget {
   final Position userPosition;
@@ -35,6 +36,39 @@ class _PlacesMapState extends State<PlacesMap> {
     }
   }
 
+  Future<void> _onMarkerTapped(String markerId) async {
+    // Extract place index from markerId (format: "place_0", "place_1", etc.)
+    if (!markerId.startsWith('place_')) return;
+
+    final index = int.tryParse(markerId.replaceFirst('place_', ''));
+    if (index == null || index >= widget.places.length) return;
+
+    final place = widget.places[index];
+
+    if (place.latitude == null || place.longitude == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Location not available')));
+      }
+      return;
+    }
+
+    try {
+      await MapUtils.openGoogleMapsDirections(
+        destinationLat: place.latitude!,
+        destinationLng: place.longitude!,
+        placeName: place.name,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open Google Maps: $e')),
+        );
+      }
+    }
+  }
+
   void _createMarkers() {
     final markers = <Marker>{};
 
@@ -64,8 +98,9 @@ class _PlacesMapState extends State<PlacesMap> {
             ),
             infoWindow: InfoWindow(
               title: place.name,
-              snippet: place.distanceInKm,
+              snippet: '${place.distanceInKm} • Tap for directions',
             ),
+            onTap: () => _onMarkerTapped('place_$i'),
           ),
         );
       }

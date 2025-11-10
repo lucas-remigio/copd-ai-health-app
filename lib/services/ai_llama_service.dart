@@ -26,12 +26,20 @@ class AILlamaService {
   AIModelConfig get currentModel => _currentModel;
 
   Future<void> initialize({AIModelConfig? model}) async {
-    if (model != null) {
+    // If switching models, dispose and reset
+    if (model != null && model != _currentModel) {
+      debugPrint('🔄 Model change detected, disposing current model');
+      _controller?.dispose();
+      _controller = null;
       _currentModel = model;
-      _isInitialized = false; // Reset if switching models
+      _isInitialized = false;
     }
 
-    if (_isInitialized) return;
+    // If already initialized with the same model, skip
+    if (_isInitialized && _controller != null) {
+      debugPrint('✅ ${_currentModel.name} already initialized, skipping');
+      return;
+    }
 
     debugPrint('🤖 Initializing ${_currentModel.name}...');
 
@@ -146,6 +154,13 @@ class AILlamaService {
     debugPrint('📍 Model path: $modelPath');
 
     try {
+      // If controller exists and model is already loaded, dispose it first
+      if (_controller != null) {
+        debugPrint('⚠️ Disposing existing controller before loading new model');
+        _controller?.dispose();
+        _controller = null;
+      }
+
       _controller = LlamaController();
       await _controller!.loadModel(
         modelPath: modelPath,
