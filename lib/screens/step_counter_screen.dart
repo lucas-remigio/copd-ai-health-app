@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
+import 'package:health_test_app/services/step_detection_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:pedometer/pedometer.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/location_service.dart';
 import '../services/places_service.dart';
-import '../services/pedometer_service.dart';
 import '../models/place.dart';
 import '../widgets/step_counter_card.dart';
 import '../widgets/location_info_card.dart';
@@ -23,10 +22,11 @@ class StepCounterScreen extends StatefulWidget {
   State<StepCounterScreen> createState() => _StepCounterScreenState();
 }
 
-class _StepCounterScreenState extends State<StepCounterScreen> {
+class _StepCounterScreenState extends State<StepCounterScreen>
+    with WidgetsBindingObserver {
   final _locationService = LocationService();
   final _placesService = PlacesService();
-  final _pedometerService = PedometerService();
+  final _stepDetector = StepDetectorService(); // Changed
 
   int _stepCount = 0;
   Position? _currentPosition;
@@ -34,33 +34,87 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
   String _errorMessage = '';
   bool _isLoadingPlaces = false;
   bool _hasSearchedPlaces = false;
-  String _recommendation = ''; // Store the AI recommendation
-  bool _isLoadingRecommendation = false; // Loading state for recommendation
-  String _streamingRecommendation = ''; // Streaming text from ai
+  String _recommendation = '';
+  bool _isLoadingRecommendation = false;
+  String _streamingRecommendation = '';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initialize();
   }
 
-  Future<void> _initialize() async {
-    await _requestPermissions();
-    _startListening();
-    await _loadLocation();
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stepDetector.dispose();
+    super.dispose();
   }
 
-  Future<void> _requestPermissions() async {
-    final activityStatus = await Permission.activityRecognition.request();
-    final locationStatus = await Permission.location.request();
-
-    if (!activityStatus.isGranted || !locationStatus.isGranted) {
-      setState(() => _errorMessage = 'Permissions denied');
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Stop step detection when app is in background to save battery
+    if (state == AppLifecycleState.paused) {
+      _stepDetector.stopListening();
+    } else if (state == AppLifecycleState.resumed) {
+      _stepDetector.startListening();
     }
   }
 
+  Future<void> _initialize() async {
+    // Initialize step detector
+    await _stepDetector.initialize();
+    _stepCount = _stepDetector.currentStepCount;
+
+    await _requestPermissions();
+
+    if (_errorMessage.isEmpty) {
+      _startListening();
+      await _loadLocation();
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    // Request activity recognition (for sensors)
+    final activityStatus = await Permission.activityRecognition.request();
+
+    // Request location permission
+    final locationStatus = await Permission.location.request();
+
+    debugPrint('Activity permission: ${activityStatus.toString()}');
+    debugPrint('Location permission: ${locationStatus.toString()}');
+
+    if (!locationStatus.isGranted) {
+      setState(() => _errorMessage = 'Location permission denied');
+      return;
+    }
+
+    // Activity recognition is optional but recommended
+    if (!activityStatus.isGranted) {
+      debugPrint(
+        '⚠️ Activity recognition not granted, step detection may be less accurate',
+      );
+    }
+
+    setState(() => _errorMessage = '');
+  }
+
   void _startListening() {
-    _pedometerService.stepCountStream.listen(_onStepCount, onError: _onError);
+    // Start step detection
+    _stepDetector.startListening();
+
+    // Listen to step count updates
+    _stepDetector.stepCountStream.listen(
+      (steps) {
+        setState(() {
+          _stepCount = steps;
+        });
+      },
+      onError: (error) {
+        debugPrint('Step detection error: $error');
+      },
+    );
   }
 
   Future<void> _loadLocation() async {
@@ -68,7 +122,6 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
       final position = await _locationService.getCurrentLocation();
       setState(() {
         _currentPosition = position;
-        _errorMessage = '';
       });
     } catch (e) {
       setState(() => _errorMessage = 'Location error: $e');
@@ -84,7 +137,7 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
 
     setState(() {
       _isLoadingPlaces = true;
-      _isLoadingRecommendation = true; // Start loading recommendation
+      _isLoadingRecommendation = true;
     });
 
     try {
@@ -93,21 +146,18 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
         _nearbyPlaces = places;
         _isLoadingPlaces = false;
         _hasSearchedPlaces = true;
-        _errorMessage = '';
       });
 
       setState(() {
-        _recommendation = ''; // Reset full recommendation
-        _streamingRecommendation = ''; // Reset streaming text
+        _recommendation = '';
+        _streamingRecommendation = '';
       });
 
-      // Get AI recommendation
       final recommendation = await widget.aiService.getHealthRecommendation(
         _stepCount,
         10000,
         places,
         onToken: (token) {
-          // New: Update UI for each token
           setState(() {
             _streamingRecommendation += token;
           });
@@ -128,27 +178,38 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
     }
   }
 
-  void _onStepCount(StepCount event) {
-    setState(() {
-      _stepCount = event.steps;
-      _errorMessage = '';
-    });
-  }
-
-  void _onError(dynamic error) {
-    setState(() => _errorMessage = 'Error: $error');
-    debugPrint('Pedometer error: $error');
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Step Counter'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Step Counter'),
+        centerTitle: true,
+        actions: [
+          // Add manual adjustment buttons for testing
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'add100') {
+                await _stepDetector.addSteps(100);
+              } else if (value == 'add1000') {
+                await _stepDetector.addSteps(1000);
+              } else if (value == 'reset') {
+                await _stepDetector.resetSteps();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'add100',
+                child: Text('Add 100 steps'),
+              ),
+              const PopupMenuItem(
+                value: 'add1000',
+                child: Text('Add 1000 steps'),
+              ),
+              const PopupMenuItem(value: 'reset', child: Text('Reset steps')),
+            ],
+          ),
+        ],
+      ),
       body: _errorMessage.isNotEmpty
           ? ErrorView(errorMessage: _errorMessage, onRetry: _initialize)
           : _buildDataView(),
@@ -160,6 +221,26 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          // Info card about accelerometer-based detection
+          Card(
+            color: Colors.blue[50],
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Steps detected using motion sensors. Keep phone with you while walking.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue[900]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           StepCounterCard(stepCount: _stepCount),
           const SizedBox(height: 24),
           if (_currentPosition != null)
@@ -190,12 +271,10 @@ class _StepCounterScreenState extends State<StepCounterScreen> {
               isLoading: _isLoadingPlaces,
             ),
             const SizedBox(height: 24),
-            // New: Display AI Recommendation
             AIRecommendationCard(
               recommendation: _recommendation,
               isLoading: _isLoadingRecommendation,
-              streamingText:
-                  _streamingRecommendation, // New: Pass streaming text
+              streamingText: _streamingRecommendation,
               onRefresh: _fetchNearbyPlaces,
             ),
           ],
