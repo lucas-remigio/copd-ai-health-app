@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/step_detection_service.dart';
+import 'package:health_test_app/services/unified_step_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/location_service.dart';
@@ -12,6 +12,7 @@ import '../widgets/nearby_places_card.dart';
 import '../widgets/places_map.dart';
 import '../widgets/error_view.dart';
 import '../widgets/ai_recommendation_card.dart';
+import '../widgets/step_method_indicator.dart';
 
 class StepCounterScreen extends StatefulWidget {
   final AILlamaService aiService;
@@ -26,7 +27,7 @@ class _StepCounterScreenState extends State<StepCounterScreen>
     with WidgetsBindingObserver {
   final _locationService = LocationService();
   final _placesService = PlacesService();
-  final _stepDetector = StepDetectorService(); // Changed
+  final _stepService = UnifiedStepService();
 
   int _stepCount = 0;
   Position? _currentPosition;
@@ -48,38 +49,30 @@ class _StepCounterScreenState extends State<StepCounterScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _stepDetector.dispose();
+    _stepService.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Stop step detection when app is in background to save battery
     if (state == AppLifecycleState.paused) {
-      _stepDetector.stopListening();
+      _stepService.pause();
     } else if (state == AppLifecycleState.resumed) {
-      _stepDetector.startListening();
+      _stepService.resume();
     }
   }
 
   Future<void> _initialize() async {
-    // Initialize step detector
-    await _stepDetector.initialize();
-    _stepCount = _stepDetector.currentStepCount;
-
     await _requestPermissions();
 
     if (_errorMessage.isEmpty) {
-      _startListening();
+      await _initializeStepDetection();
       await _loadLocation();
     }
   }
 
   Future<void> _requestPermissions() async {
-    // Request activity recognition (for sensors)
     final activityStatus = await Permission.activityRecognition.request();
-
-    // Request location permission
     final locationStatus = await Permission.location.request();
 
     debugPrint('Activity permission: ${activityStatus.toString()}');
@@ -90,22 +83,30 @@ class _StepCounterScreenState extends State<StepCounterScreen>
       return;
     }
 
-    // Activity recognition is optional but recommended
     if (!activityStatus.isGranted) {
       debugPrint(
-        '⚠️ Activity recognition not granted, step detection may be less accurate',
+        '⚠️ Activity recognition not granted, some features may be limited',
       );
     }
 
     setState(() => _errorMessage = '');
   }
 
-  void _startListening() {
-    // Start step detection
-    _stepDetector.startListening();
+  Future<void> _initializeStepDetection() async {
+    final success = await _stepService.initialize();
 
-    // Listen to step count updates
-    _stepDetector.stepCountStream.listen(
+    if (!success) {
+      setState(() {
+        _errorMessage =
+            'Step detection not available on this device.\n'
+            'You can still manually add steps using the menu.';
+      });
+      return;
+    }
+
+    _stepCount = _stepService.currentStepCount;
+
+    _stepService.stepCountStream.listen(
       (steps) {
         setState(() {
           _stepCount = steps;
@@ -185,15 +186,14 @@ class _StepCounterScreenState extends State<StepCounterScreen>
         title: const Text('Step Counter'),
         centerTitle: true,
         actions: [
-          // Add manual adjustment buttons for testing
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'add100') {
-                await _stepDetector.addSteps(100);
+                await _stepService.addSteps(100);
               } else if (value == 'add1000') {
-                await _stepDetector.addSteps(1000);
+                await _stepService.addSteps(1000);
               } else if (value == 'reset') {
-                await _stepDetector.resetSteps();
+                await _stepService.resetSteps();
               }
             },
             itemBuilder: (context) => [
@@ -221,25 +221,7 @@ class _StepCounterScreenState extends State<StepCounterScreen>
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Info card about accelerometer-based detection
-          Card(
-            color: Colors.blue[50],
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.blue),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Steps detected using motion sensors. Keep phone with you while walking.',
-                      style: TextStyle(fontSize: 12, color: Colors.blue[900]),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          StepMethodIndicator(stepService: _stepService),
           const SizedBox(height: 16),
           StepCounterCard(stepCount: _stepCount),
           const SizedBox(height: 24),
