@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:health_test_app/screens/loading_screen.dart';
-import 'screens/step_counter_screen.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +14,10 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: LoadingScreen(),
+    return MaterialApp(
+      title: 'Health Assistant',
+      theme: AppTheme.lightTheme,
+      home: const LoadingScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

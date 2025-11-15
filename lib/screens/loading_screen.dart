@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
-import '../services/ai_service.dart';
-import 'step_counter_screen.dart';
+import 'home_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -66,7 +65,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => StepCounterScreen(aiService: _aiService),
+            builder: (context) => HomeScreen(aiService: _aiService),
           ),
         );
       }
