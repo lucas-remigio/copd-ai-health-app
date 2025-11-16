@@ -5,6 +5,7 @@ import 'package:health_test_app/services/app_state_manager.dart';
 import '../models/place.dart';
 import '../theme/app_theme.dart';
 import '../widgets/places_map.dart';
+import '../utils/map_utils.dart';
 
 class PlacesScreen extends StatefulWidget {
   final AILlamaService aiService;
@@ -271,8 +272,27 @@ class _PlacesScreenState extends State<PlacesScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-          // Could add navigation or details here
+        onTap: () async {
+          if (place.latitude == null || place.longitude == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Location not available')),
+            );
+            return;
+          }
+
+          try {
+            await MapUtils.openGoogleMapsDirections(
+              destinationLat: place.latitude!,
+              destinationLng: place.longitude!,
+              placeName: place.name,
+            );
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to open Google Maps: $e')),
+              );
+            }
+          }
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -315,35 +335,50 @@ class _PlacesScreenState extends State<PlacesScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.directions_walk,
-                          size: 14,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          place.distanceInSteps,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        if (place.duration != null) ...[
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: AppTheme.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            place.durationInMinutes,
-                            style: const TextStyle(
-                              fontSize: 13,
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.directions_walk,
+                              size: 14,
                               color: AppTheme.textSecondary,
                             ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                place.distanceInSteps,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppTheme.textSecondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (place.duration != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  place.durationInMinutes,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ],

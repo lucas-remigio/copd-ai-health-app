@@ -69,11 +69,14 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   Future<void> _initializeStepDetection() async {
     // AppStateManager already initialized in main, just get current count
     _stepCount = _appState.stepService.currentStepCount;
+    _stepGoal = _appState.stepGoal;
 
     _appState.stepService.stepCountStream.listen(
       (steps) => setState(() => _stepCount = steps),
       onError: (error) => debugPrint('Step detection error: $error'),
     );
+
+    _appState.stepGoalStream.listen((goal) => setState(() => _stepGoal = goal));
   }
 
   void _showGoalDialog() {
@@ -99,7 +102,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
             onPressed: () {
               final newGoal = int.tryParse(controller.text);
               if (newGoal != null && newGoal > 0) {
-                setState(() => _stepGoal = newGoal);
+                _appState.setStepGoal(newGoal);
               }
               Navigator.pop(context);
             },

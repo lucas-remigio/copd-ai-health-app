@@ -23,11 +23,14 @@ class AppStateManager {
   Position? _currentPosition;
   List<Place> _nearbyPlaces = [];
   final List<ChatMessage> _chatHistory = [];
+  int _stepGoal = 10000;
 
   // Chat streaming state
   bool _isGeneratingResponse = false;
   final StreamController<void> _chatUpdateController =
       StreamController<void>.broadcast();
+  final StreamController<int> _stepGoalController =
+      StreamController<int>.broadcast();
 
   // Getters
   UnifiedStepService get stepService => _stepService;
@@ -38,6 +41,8 @@ class AppStateManager {
   bool get hasLocation => _currentPosition != null;
   bool get isGeneratingResponse => _isGeneratingResponse;
   Stream<void> get chatUpdateStream => _chatUpdateController.stream;
+  int get stepGoal => _stepGoal;
+  Stream<int> get stepGoalStream => _stepGoalController.stream;
 
   /// Initialize all app services
   Future<void> initialize() async {
@@ -142,10 +147,20 @@ class AppStateManager {
     _chatUpdateController.add(null);
   }
 
+  /// Set step goal
+  void setStepGoal(int goal) {
+    if (goal > 0) {
+      _stepGoal = goal;
+      _stepGoalController.add(_stepGoal);
+      debugPrint('🎯 Step goal updated to: $goal');
+    }
+  }
+
   /// Dispose all resources
   void dispose() {
     _stepService.dispose();
     _chatUpdateController.close();
+    _stepGoalController.close();
     debugPrint('🗑️ AppStateManager disposed');
   }
 }

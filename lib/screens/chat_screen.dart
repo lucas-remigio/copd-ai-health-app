@@ -78,7 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       await widget.aiService.getHealthRecommendation(
         _stepCount,
-        10000,
+        _appState.stepGoal,
         _appState.nearbyPlaces,
         onToken: (token) {
           _currentStreamingText += token;
