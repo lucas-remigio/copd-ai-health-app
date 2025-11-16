@@ -76,7 +76,8 @@ class _ChatScreenState extends State<ChatScreen> {
         ChatMessage(text: '', isUser: false, timestamp: DateTime.now()),
       );
 
-      await widget.aiService.getHealthRecommendation(
+      await widget.aiService.sendMessage(
+        text,
         _stepCount,
         _appState.stepGoal,
         _appState.nearbyPlaces,
@@ -168,7 +169,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: const InputDecoration(
-                      hintText: 'Pergunte sobre sugestões de caminhada...',
+                      hintText: 'Escreve a tua mensagem...',
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
@@ -237,7 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Pergunte-me sobre recomendações de caminhada,\nmetas de passos ou locais para visitar',
+              'Fala comigo sobre qualquer coisa!\nSou especialista em fitness e saúde.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
             ),
