@@ -15,7 +15,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Health Assistant',
+      title: 'Assistente de Saúde',
       theme: AppTheme.lightTheme,
       home: const LoadingScreen(),
       debugShowCheckedModeBanner: false,

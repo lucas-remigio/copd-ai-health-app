@@ -74,7 +74,7 @@ class AppStateManager {
       _chatHistory.add(
         ChatMessage(
           text:
-              'Hi! I\'m your health assistant. Ask me about walking suggestions, step goals, or nearby places to explore!',
+              'Olá! Sou o seu assistente de saúde. Pergunte-me sobre sugestões de caminhada, metas de passos ou locais próximos para explorar!',
           isUser: false,
           timestamp: DateTime.now(),
         ),
@@ -125,7 +125,7 @@ class AppStateManager {
     _chatHistory.add(
       ChatMessage(
         text:
-            'Hi! I\'m your health assistant. Ask me about walking suggestions, step goals, or nearby places to explore!',
+            'Olá! Sou o seu assistente de saúde. Pergunte-me sobre sugestões de caminhada, metas de passos ou locais próximos para explorar!',
         isUser: false,
         timestamp: DateTime.now(),
       ),

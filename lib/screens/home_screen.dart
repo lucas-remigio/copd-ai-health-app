@@ -43,9 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.directions_walk),
-              label: 'Steps',
+              label: 'Passos',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Places'),
+            BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Locais'),
             BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline),
               label: 'Chat',

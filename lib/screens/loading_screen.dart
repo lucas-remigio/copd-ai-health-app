@@ -13,7 +13,7 @@ class LoadingScreen extends StatefulWidget {
 class _LoadingScreenState extends State<LoadingScreen> {
   final AILlamaService _aiService = AILlamaService();
   final AppStateManager _appState = AppStateManager();
-  String _status = 'Initializing...';
+  String _status = 'A inicializar...';
   String _streamingTestResponse = '';
   double _progress = 0.0;
   bool _hasError = false;
@@ -31,14 +31,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       // Then initialize app state (steps, location, etc.)
       setState(() {
-        _status = 'Initializing app services...';
+        _status = 'A inicializar serviços da app...';
         _progress = 0.0;
       });
 
       await _appState.initialize();
 
       setState(() {
-        _status = 'Ready!';
+        _status = 'Pronto!';
         _progress = 1.0;
       });
 
@@ -53,7 +53,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
       }
     } catch (e) {
       setState(() {
-        _status = 'Failed to initialize: $e';
+        _status = 'Falha ao inicializar: $e';
         _hasError = true;
       });
     }
@@ -62,7 +62,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
   Future<void> _initializeAI() async {
     try {
       setState(() {
-        _status = 'Downloading AI model...';
+        _status = 'A descarregar modelo de IA...';
         _progress = 0.0;
       });
 
@@ -71,14 +71,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
         setState(() {
           _progress = progress;
           _status =
-              'Downloading AI model... ${(progress * 100).toStringAsFixed(1)}%';
+              'A descarregar modelo de IA... ${(progress * 100).toStringAsFixed(1)}%';
         });
       };
 
       await _aiService.initialize();
 
       setState(() {
-        _status = 'Testing AI model...';
+        _status = 'A testar modelo de IA...';
         _progress = 1.0;
         _streamingTestResponse = '';
       });
@@ -87,13 +87,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
         onToken: (token) {
           setState(() {
             _streamingTestResponse += token;
-            _status = 'Testing AI model...\nStreaming: $_streamingTestResponse';
+            _status =
+                'A testar modelo de IA...\nStreaming: $_streamingTestResponse';
           });
         },
       );
 
       setState(() {
-        _status = 'AI Response:\n$testResponse';
+        _status = 'Resposta IA:\n$testResponse';
       });
 
       await Future.delayed(const Duration(seconds: 2));
@@ -138,12 +139,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   onPressed: () {
                     setState(() {
                       _hasError = false;
-                      _status = 'Retrying...';
+                      _status = 'A tentar novamente...';
                       _progress = 0.0;
                     });
                     _initialize();
                   },
-                  child: const Text('Retry'),
+                  child: const Text('Tentar novamente'),
                 ),
               ],
             ],

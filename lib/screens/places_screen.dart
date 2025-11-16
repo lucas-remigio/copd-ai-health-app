@@ -85,13 +85,13 @@ class _PlacesScreenState extends State<PlacesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nearby Places'),
+        title: const Text('Locais Próximos'),
         actions: [
           if (_hasSearched)
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _fetchNearbyPlaces,
-              tooltip: 'Refresh',
+              tooltip: 'Atualizar',
             ),
         ],
       ),
@@ -139,7 +139,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
                 setState(() => _errorMessage = null);
                 _refreshLocation();
               },
-              child: const Text('Retry'),
+              child: const Text('Tentar novamente'),
             ),
           ],
         ),
@@ -220,7 +220,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'No places found nearby',
+              'Nenhum local encontrado por perto',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -229,7 +229,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Try searching in a different area',
+              'Tente procurar numa área diferente',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppTheme.textSecondary),
             ),
@@ -275,7 +275,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
         onTap: () async {
           if (place.latitude == null || place.longitude == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Location not available')),
+              const SnackBar(content: Text('Localização não disponível')),
             );
             return;
           }
@@ -289,7 +289,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
           } catch (e) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Failed to open Google Maps: $e')),
+                SnackBar(content: Text('Erro ao abrir Google Maps: $e')),
               );
             }
           }

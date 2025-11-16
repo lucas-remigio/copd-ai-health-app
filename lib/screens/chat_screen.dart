@@ -98,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       _appState.addChatMessage(
         ChatMessage(
-          text: 'Sorry, I encountered an error: $e',
+          text: 'Desculpe, ocorreu um erro: $e',
           isUser: false,
           timestamp: DateTime.now(),
         ),
@@ -123,7 +123,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Health Chat'),
+        title: const Text('Chat de Saúde'),
         actions: [
           if (_appState.chatHistory.length > 1)
             IconButton(
@@ -133,7 +133,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   : () {
                       _appState.clearChatHistory();
                     },
-              tooltip: 'Clear chat',
+              tooltip: 'Limpar chat',
             ),
         ],
       ),
@@ -168,7 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: const InputDecoration(
-                      hintText: 'Ask about walking suggestions...',
+                      hintText: 'Pergunte sobre sugestões de caminhada...',
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
@@ -228,7 +228,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Start a Conversation',
+              'Iniciar Conversa',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -237,7 +237,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Ask me about walking recommendations,\nstep goals, or places to visit',
+              'Pergunte-me sobre recomendações de caminhada,\nmetas de passos ou locais para visitar',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
             ),

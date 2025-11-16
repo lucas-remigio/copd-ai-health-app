@@ -242,7 +242,7 @@ class AILlamaService {
     debugPrint('🎯 Testing model...');
 
     const prompt =
-        "System: You are a helpful assistant. Answer in 1 word and 1 emoji.\nUser: Say hi\nAssistant:";
+        "System: És um assistente prestável. Responde em 1 palavra e 1 emoji.\nUser: Diz olá\nAssistant:";
 
     try {
       String fullResponse = '';
@@ -269,7 +269,7 @@ class AILlamaService {
       return fullResponse;
     } catch (e) {
       debugPrint('❌ Error: $e');
-      return 'Test failed: $e';
+      return 'Teste falhou: $e';
     }
   }
 
@@ -280,13 +280,13 @@ class AILlamaService {
   ) {
     final neededSteps = goal - steps > 0 ? goal - steps : 0;
     return """
-      System: You are a friendly health assistant. Based on the user's current steps, daily goal, and nearby places (with distances in steps), suggest ONE specific place to walk to today. 
-      Choose the place with the HIGHEST number of steps among the nearby places to maximize their progress towards the goal, without overexceeding. 
-      Calculate how many steps they need to reach their goal and explain how walking to this place helps them get closer. 
-      Keep your response concise, motivating, and under 100 words.
+      System: És um assistente de saúde amigável. Com base nos passos atuais do utilizador, objetivo diário e locais próximos (com distâncias em passos), sugere UM local específico para caminhar hoje. 
+      Escolhe o local com o MAIOR número de passos entre os locais próximos para maximizar o progresso em direção ao objetivo, sem exceder. 
+      Calcula quantos passos faltam para atingir o objetivo e explica como caminhar até este local ajuda a aproximar-se. 
+      Mantém a tua resposta concisa, motivadora e com menos de 100 palavras.
 
-      User: I have walked $steps steps so far today. My daily goal is $goal steps, so I need $neededSteps more steps. Nearby places: ${formattedPlaces.join(', ')}. 
-      Suggest a place for me to walk to today to help me reach my goal.
+      User: Caminhei $steps passos até agora hoje. O meu objetivo diário é $goal passos, por isso preciso de $neededSteps passos adicionais. Locais próximos: ${formattedPlaces.join(', ')}. 
+      Sugere-me um local para caminhar hoje para me ajudar a atingir o meu objetivo.
 
       Assistant:""";
   }
@@ -347,7 +347,7 @@ class AILlamaService {
       return fullResponse.trim();
     } catch (e) {
       debugPrint('❌ Error: $e');
-      return 'Failed to generate recommendation: $e';
+      return 'Falha ao gerar recomendação: $e';
     }
   }
 
