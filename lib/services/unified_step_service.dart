@@ -43,28 +43,28 @@ class UnifiedStepService {
   StepMethodInfo get methodInfo {
     const methodData = {
       StepDetectionMethod.healthConnect: StepMethodInfo(
-        description: 'Using Google Fit / Health Connect (most accurate)',
+        description: 'A usar Google Fit / Health Connect (mais preciso)',
         backgroundColor: Color(0xFFE8F5E9), // Colors.green[50]
         iconColor: Colors.green,
         textColor: Color(0xFF1B5E20), // Colors.green[900]
         icon: Icons.favorite,
       ),
       StepDetectionMethod.pedometer: StepMethodInfo(
-        description: 'Using hardware step counter (accurate)',
+        description: 'A usar contador de passos do hardware (preciso)',
         backgroundColor: Color(0xFFE3F2FD), // Colors.blue[50]
         iconColor: Colors.blue,
         textColor: Color(0xFF0D47A1), // Colors.blue[900]
         icon: Icons.directions_walk,
       ),
       StepDetectionMethod.accelerometer: StepMethodInfo(
-        description: 'Using motion sensors (moderate accuracy)',
+        description: 'A usar sensores de movimento (precisão moderada)',
         backgroundColor: Color(0xFFFFF3E0), // Colors.orange[50]
         iconColor: Colors.orange,
         textColor: Color(0xFFE65100), // Colors.orange[900]
         icon: Icons.sensors,
       ),
       StepDetectionMethod.none: StepMethodInfo(
-        description: 'No step detection available',
+        description: 'Nenhum método de deteção de passos disponível',
         backgroundColor: Color(0xFFFAFAFA), // Colors.grey[50]
         iconColor: Colors.grey,
         textColor: Color(0xFF212121), // Colors.grey[900]

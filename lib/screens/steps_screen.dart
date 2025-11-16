@@ -305,7 +305,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Steps to Go',
+                            'Passos em Falta',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppTheme.textSecondary,

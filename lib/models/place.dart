@@ -19,7 +19,7 @@ class Place {
     int? durationSeconds,
   }) {
     return Place(
-      name: json['displayName']?['text'] ?? 'Unknown',
+      name: json['displayName']?['text'] ?? 'Desconhecido',
       latitude: json['location']?['latitude'] as double?,
       longitude: json['location']?['longitude'] as double?,
       distance: distanceMeters,
@@ -28,18 +28,18 @@ class Place {
   }
 
   String get distanceInKm => distance != null
-      ? '${(distance! / 1000).toStringAsFixed(2)} km away'
-      : 'Distance unknown';
+      ? '${(distance! / 1000).toStringAsFixed(2)} km'
+      : 'Distância desconhecida';
 
   String get durationInMinutes {
     if (duration == null) return '';
     final minutes = (duration! / 60).round();
-    return '~$minutes min walk';
+    return '~$minutes min a pé';
   }
 
   String get distanceInSteps {
-    if (distance == null) return 'Distance unknown';
+    if (distance == null) return 'Distância desconhecida';
     final steps = (distance! / 0.762).round(); // Average step length ~0.762m
-    return '$steps steps away';
+    return '$steps passos';
   }
 }
