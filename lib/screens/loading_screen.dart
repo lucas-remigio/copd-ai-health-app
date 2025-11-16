@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
+import 'package:health_test_app/services/app_state_manager.dart';
 import 'home_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -11,15 +12,51 @@ class LoadingScreen extends StatefulWidget {
 
 class _LoadingScreenState extends State<LoadingScreen> {
   final AILlamaService _aiService = AILlamaService();
+  final AppStateManager _appState = AppStateManager();
   String _status = 'Initializing...';
-  String _streamingTestResponse = ''; // New: For streaming test response
+  String _streamingTestResponse = '';
   double _progress = 0.0;
   bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeAI();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    try {
+      // Initialize AI model first
+      await _initializeAI();
+
+      // Then initialize app state (steps, location, etc.)
+      setState(() {
+        _status = 'Initializing app services...';
+        _progress = 0.0;
+      });
+
+      await _appState.initialize();
+
+      setState(() {
+        _status = 'Ready!';
+        _progress = 1.0;
+      });
+
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(aiService: _aiService),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _status = 'Failed to initialize: $e';
+        _hasError = true;
+      });
+    }
   }
 
   Future<void> _initializeAI() async {
@@ -43,12 +80,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
       setState(() {
         _status = 'Testing AI model...';
         _progress = 1.0;
-        _streamingTestResponse = ''; // Reset streaming
+        _streamingTestResponse = '';
       });
 
       final testResponse = await _aiService.getTestResponse(
         onToken: (token) {
-          // New: Stream tokens to UI
           setState(() {
             _streamingTestResponse += token;
             _status = 'Testing AI model...\nStreaming: $_streamingTestResponse';
@@ -60,20 +96,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _status = 'AI Response:\n$testResponse';
       });
 
-      await Future.delayed(const Duration(seconds: 3));
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(aiService: _aiService),
-          ),
-        );
-      }
+      await Future.delayed(const Duration(seconds: 2));
     } catch (e) {
-      setState(() {
-        _status = 'Failed to initialize AI: $e';
-        _hasError = true;
-      });
+      debugPrint('AI initialization error: $e');
+      rethrow;
     }
   }
 
@@ -115,7 +141,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                       _status = 'Retrying...';
                       _progress = 0.0;
                     });
-                    _initializeAI();
+                    _initialize();
                   },
                   child: const Text('Retry'),
                 ),

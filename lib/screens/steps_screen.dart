@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/unified_step_service.dart';
+import 'package:health_test_app/services/app_state_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import 'dart:math' as math;
@@ -15,7 +15,7 @@ class StepsScreen extends StatefulWidget {
 }
 
 class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
-  final _stepService = UnifiedStepService();
+  final _appState = AppStateManager();
   int _stepCount = 0;
   int _stepGoal = 10000;
   String _errorMessage = '';
@@ -30,16 +30,16 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _stepService.dispose();
+    // Don't dispose singleton
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      _stepService.pause();
+      _appState.stepService.pause();
     } else if (state == AppLifecycleState.resumed) {
-      _stepService.resume();
+      _appState.stepService.resume();
     }
   }
 
@@ -67,18 +67,10 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeStepDetection() async {
-    final success = await _stepService.initialize();
+    // AppStateManager already initialized in main, just get current count
+    _stepCount = _appState.stepService.currentStepCount;
 
-    if (!success) {
-      setState(() {
-        _errorMessage = 'Step detection not available on this device.';
-      });
-      return;
-    }
-
-    _stepCount = _stepService.currentStepCount;
-
-    _stepService.stepCountStream.listen(
+    _appState.stepService.stepCountStream.listen(
       (steps) => setState(() => _stepCount = steps),
       onError: (error) => debugPrint('Step detection error: $error'),
     );
@@ -156,11 +148,11 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'add100') {
-                await _stepService.addSteps(100);
+                await _appState.stepService.addSteps(100);
               } else if (value == 'add1000') {
-                await _stepService.addSteps(1000);
+                await _appState.stepService.addSteps(1000);
               } else if (value == 'reset') {
-                await _stepService.resetSteps();
+                await _appState.stepService.resetSteps();
               }
             },
             itemBuilder: (context) => [
@@ -393,7 +385,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildMethodIndicator() {
-    final info = _stepService.methodInfo;
+    final info = _appState.stepService.methodInfo;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),

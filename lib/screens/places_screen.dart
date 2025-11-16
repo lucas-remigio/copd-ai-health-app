@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
-import '../services/location_service.dart';
-import '../services/places_service.dart';
+import 'package:health_test_app/services/app_state_manager.dart';
 import '../models/place.dart';
 import '../theme/app_theme.dart';
 import '../widgets/places_map.dart';
@@ -17,8 +16,7 @@ class PlacesScreen extends StatefulWidget {
 }
 
 class _PlacesScreenState extends State<PlacesScreen> {
-  final _locationService = LocationService();
-  final _placesService = PlacesService();
+  final _appState = AppStateManager();
 
   Position? _currentPosition;
   List<Place> _nearbyPlaces = [];
@@ -29,13 +27,25 @@ class _PlacesScreenState extends State<PlacesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLocation();
+    _loadCachedData();
   }
 
-  Future<void> _loadLocation() async {
+  void _loadCachedData() {
+    // Load from singleton
+    setState(() {
+      _currentPosition = _appState.currentPosition;
+      _nearbyPlaces = _appState.nearbyPlaces;
+      _hasSearched = _nearbyPlaces.isNotEmpty;
+    });
+  }
+
+  Future<void> _refreshLocation() async {
     try {
-      final position = await _locationService.getCurrentLocation();
-      setState(() => _currentPosition = position);
+      await _appState.refreshLocation();
+      setState(() {
+        _currentPosition = _appState.currentPosition;
+        _errorMessage = null;
+      });
     } catch (e) {
       setState(() => _errorMessage = 'Failed to get location: $e');
       debugPrint('Location error: $e');
@@ -43,7 +53,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
   }
 
   Future<void> _fetchNearbyPlaces() async {
-    if (_currentPosition == null) {
+    if (!_appState.hasLocation) {
       setState(() => _errorMessage = 'Location not available');
       return;
     }
@@ -54,9 +64,10 @@ class _PlacesScreenState extends State<PlacesScreen> {
     });
 
     try {
-      final places = await _placesService.fetchNearbyPlaces(_currentPosition!);
+      await _appState.fetchNearbyPlaces();
       setState(() {
-        _nearbyPlaces = places;
+        _nearbyPlaces = _appState.nearbyPlaces;
+        _currentPosition = _appState.currentPosition;
         _isLoading = false;
         _hasSearched = true;
       });
@@ -125,7 +136,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() => _errorMessage = null);
-                _loadLocation();
+                _refreshLocation();
               },
               child: const Text('Retry'),
             ),

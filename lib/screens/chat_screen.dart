@@ -1,23 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/unified_step_service.dart';
-import 'package:geolocator/geolocator.dart';
-import '../services/location_service.dart';
-import '../services/places_service.dart';
-import '../models/place.dart';
+import 'package:health_test_app/services/app_state_manager.dart';
 import '../theme/app_theme.dart';
-
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final DateTime timestamp;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    required this.timestamp,
-  });
-}
+import '../models/chat_message.dart';
 
 class ChatScreen extends StatefulWidget {
   final AILlamaService aiService;
@@ -31,62 +16,47 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  final _stepService = UnifiedStepService();
-  final _locationService = LocationService();
-  final _placesService = PlacesService();
+  final _appState = AppStateManager();
 
-  final List<ChatMessage> _messages = [];
-  bool _isLoading = false;
-  String _streamingText = '';
   int _stepCount = 0;
-  Position? _currentPosition;
-  List<Place> _nearbyPlaces = [];
+  String _currentStreamingText = '';
 
   @override
   void initState() {
     super.initState();
     _initializeContext();
-    _addWelcomeMessage();
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    _stepService.dispose();
+    // Don't dispose singleton
     super.dispose();
   }
 
-  Future<void> _initializeContext() async {
-    try {
-      await _stepService.initialize();
-      _stepCount = _stepService.currentStepCount;
+  void _initializeContext() {
+    // Get current step count and listen to changes
+    _stepCount = _appState.stepService.currentStepCount;
 
-      _stepService.stepCountStream.listen((steps) {
+    _appState.stepService.stepCountStream.listen((steps) {
+      if (mounted) {
         setState(() => _stepCount = steps);
-      });
+      }
+    });
 
-      _currentPosition = await _locationService.getCurrentLocation();
-      _nearbyPlaces = await _placesService.fetchNearbyPlaces(_currentPosition!);
-    } catch (e) {
-      debugPrint('Failed to initialize context: $e');
-    }
-  }
-
-  void _addWelcomeMessage() {
-    _messages.add(
-      ChatMessage(
-        text:
-            'Hi! I\'m your health assistant. Ask me about walking suggestions, step goals, or nearby places to explore!',
-        isUser: false,
-        timestamp: DateTime.now(),
-      ),
-    );
+    // Listen to chat updates from the singleton
+    _appState.chatUpdateStream.listen((_) {
+      if (mounted) {
+        setState(() {});
+        _scrollToBottom();
+      }
+    });
   }
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _isLoading) return;
+    if (text.isEmpty || _appState.isGeneratingResponse) return;
 
     final userMessage = ChatMessage(
       text: text,
@@ -94,55 +64,47 @@ class _ChatScreenState extends State<ChatScreen> {
       timestamp: DateTime.now(),
     );
 
-    setState(() {
-      _messages.add(userMessage);
-      _isLoading = true;
-      _streamingText = '';
-      _messageController.clear();
-    });
-
-    _scrollToBottom();
+    _messageController.clear();
+    _appState.addChatMessage(userMessage);
+    _appState.setGeneratingResponse(true);
+    _currentStreamingText = '';
 
     try {
       // Add empty AI message that will be filled with streaming text
-      final aiMessageIndex = _messages.length;
-      _messages.add(
+      final aiMessageIndex = _appState.chatHistory.length;
+      _appState.addChatMessage(
         ChatMessage(text: '', isUser: false, timestamp: DateTime.now()),
       );
 
       await widget.aiService.getHealthRecommendation(
         _stepCount,
         10000,
-        _nearbyPlaces,
+        _appState.nearbyPlaces,
         onToken: (token) {
-          setState(() {
-            _streamingText += token;
-            // Update the AI message with streamed text
-            _messages[aiMessageIndex] = ChatMessage(
-              text: _streamingText,
+          _currentStreamingText += token;
+          // Update the AI message with streamed text
+          _appState.updateChatMessage(
+            aiMessageIndex,
+            ChatMessage(
+              text: _currentStreamingText,
               isUser: false,
-              timestamp: _messages[aiMessageIndex].timestamp,
-            );
-          });
-          _scrollToBottom();
+              timestamp: _appState.chatHistory[aiMessageIndex].timestamp,
+            ),
+          );
         },
       );
 
-      setState(() => _isLoading = false);
+      _appState.setGeneratingResponse(false);
     } catch (e) {
-      setState(() {
-        _messages.add(
-          ChatMessage(
-            text: 'Sorry, I encountered an error: $e',
-            isUser: false,
-            timestamp: DateTime.now(),
-          ),
-        );
-        _isLoading = false;
-      });
+      _appState.addChatMessage(
+        ChatMessage(
+          text: 'Sorry, I encountered an error: $e',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+      _appState.setGeneratingResponse(false);
     }
-
-    _scrollToBottom();
   }
 
   void _scrollToBottom() {
@@ -163,15 +125,14 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: const Text('Health Chat'),
         actions: [
-          if (_messages.length > 1)
+          if (_appState.chatHistory.length > 1)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              onPressed: () {
-                setState(() {
-                  _messages.clear();
-                  _addWelcomeMessage();
-                });
-              },
+              onPressed: _appState.isGeneratingResponse
+                  ? null
+                  : () {
+                      _appState.clearChatHistory();
+                    },
               tooltip: 'Clear chat',
             ),
         ],
@@ -180,14 +141,14 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           // Messages list
           Expanded(
-            child: _messages.isEmpty
+            child: _appState.chatHistory.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
+                    itemCount: _appState.chatHistory.length,
                     itemBuilder: (context, index) {
-                      return _buildMessageBubble(_messages[index]);
+                      return _buildMessageBubble(_appState.chatHistory[index]);
                     },
                   ),
           ),
@@ -216,14 +177,16 @@ class _ChatScreenState extends State<ChatScreen> {
                     maxLines: null,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
-                    enabled: !_isLoading,
+                    enabled: !_appState.isGeneratingResponse,
                   ),
                 ),
                 const SizedBox(width: 12),
                 FloatingActionButton(
-                  onPressed: _isLoading ? null : _sendMessage,
+                  onPressed: _appState.isGeneratingResponse
+                      ? null
+                      : _sendMessage,
                   mini: true,
-                  child: _isLoading
+                  child: _appState.isGeneratingResponse
                       ? const SizedBox(
                           width: 20,
                           height: 20,
