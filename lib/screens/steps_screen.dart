@@ -258,7 +258,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Passos em Falta',
+                          'Meta Diária',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.textSecondary,
@@ -266,7 +266,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$remaining passos',
+                          '$_stepGoal passos',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,

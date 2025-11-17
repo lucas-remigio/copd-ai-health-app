@@ -242,7 +242,7 @@ class AILlamaService {
     debugPrint('🎯 Testing model...');
 
     const prompt =
-        "System: És um assistente prestável. Responde SEMPRE em português. Responde em 1 palavra e 1 emoji.\nUser: Diz olá\nAssistant:";
+        "<start_of_turn>user\nDiz olá<end_of_turn>\n<start_of_turn>model\n";
 
     try {
       String fullResponse = '';
@@ -273,26 +273,6 @@ class AILlamaService {
     }
   }
 
-  String _buildHealthRecommendationPrompt(
-    int steps,
-    int goal,
-    List<String> formattedPlaces,
-  ) {
-    final neededSteps = goal - steps > 0 ? goal - steps : 0;
-    return """
-      System: És um assistente de saúde amigável. IMPORTANTE: Responde SEMPRE em português de Portugal.
-      Com base nos passos atuais do utilizador, objetivo diário e locais próximos (com distâncias em passos), sugere UM local específico para caminhar hoje. 
-      Escolhe o local com o MAIOR número de passos entre os locais próximos para maximizar o progresso em direção ao objetivo, sem exceder. 
-      Calcula quantos passos faltam para atingir o objetivo e explica como caminhar até este local ajuda a aproximar-se. 
-      Mantém a tua resposta concisa, motivadora e com menos de 100 palavras.
-      LEMBRA-TE: Responde em português!
-
-      User: Caminhei $steps passos até agora hoje. O meu objetivo diário é $goal passos, por isso preciso de $neededSteps passos adicionais. Locais próximos: ${formattedPlaces.join(', ')}. 
-      Sugere-me um local para caminhar hoje para me ajudar a atingir o meu objetivo.
-
-      Assistant:""";
-  }
-
   String _buildFitnessContextPrompt(
     String userMessage,
     int steps,
@@ -300,86 +280,14 @@ class AILlamaService {
     List<String> formattedPlaces,
   ) {
     final neededSteps = goal - steps > 0 ? goal - steps : 0;
-    return """
-      System: És um assistente de fitness e saúde entusiasmado e motivador. IMPORTANTE: Responde SEMPRE em português de Portugal.
-      A tua função é ajudar o utilizador com questões relacionadas a fitness, exercício, caminhadas e saúde. 
-      Independentemente do que o utilizador perguntar, tenta sempre relacionar a resposta com fitness ou atividade física.
-      Se perguntarem algo completamente fora do tema (como "capital da França"), responde brevemente mas depois volta sempre ao tema do fitness (ex: "Paris! Uma cidade perfeita para caminhar e explorar a pé!").
-      
-      Contexto do utilizador:
-      - Passos dados hoje: $steps
-      - Objetivo diário: $goal passos
-      - Passos necessários: $neededSteps
-      - Locais próximos: ${formattedPlaces.join(', ')}
-      
-      Usa este contexto quando relevante nas tuas respostas.
-      Mantém as respostas concisas, motivadoras e com menos de 150 palavras.
-      LEMBRA-TE: Todas as respostas devem ser em português!
 
-      User: $userMessage
-
-      Assistant:""";
-  }
-
-  // Add this method to AILlamaService
-  Future<String> getHealthRecommendation(
-    int steps,
-    int goal,
-    List<Place> places, {
-    TokenCallback? onToken,
-  }) async {
-    if (!_isInitialized) await initialize();
-    if (_controller == null) throw Exception('Model not loaded');
-
-    final formattedPlaces = places
-        .map(
-          (place) =>
-              '${place.name} (${place.distanceInSteps} • ${place.durationInMinutes})',
-        )
-        .toList();
-
-    debugPrint('🏥 Generating health recommendation...');
-
-    // In ai_llama_service.dart, update the prompt in getHealthRecommendation to ensure it recommends a place that maximizes steps
-    final prompt = _buildHealthRecommendationPrompt(
-      steps,
-      goal,
-      formattedPlaces,
-    );
-
-    debugPrint('🤖 Prompt: $prompt');
-
-    try {
-      String fullResponse = '';
-      int maxTokens = 100;
-      int tokenCount = 0; // Add counter
-      StreamSubscription? subscription;
-
-      subscription = _controller!
-          .generate(prompt: prompt, maxTokens: maxTokens, temperature: 0.7)
-          .listen(
-            (token) {
-              fullResponse += token;
-              tokenCount++; // Increment counter
-              int tokensLeft = 100 - tokenCount; // Calculate remaining
-              debugPrint(
-                'Token $tokenCount: $token (Tokens left: $tokensLeft)',
-              );
-              onToken?.call(token); // Call the callback with each token
-            },
-            onDone: () {
-              debugPrint('✅ Recommendation generated!');
-              debugPrint('💬 Full Response: "$fullResponse"');
-            },
-            onError: (error) => throw error,
-          );
-
-      await subscription.asFuture();
-      return fullResponse.trim();
-    } catch (e) {
-      debugPrint('❌ Error: $e');
-      return 'Falha ao gerar recomendação: $e';
-    }
+    // Format optimized for Gemma's chat template
+    return """<start_of_turn>user
+    Caminhei $steps passos hoje. Meta: $goal passos. Faltam $neededSteps passos.
+    Locais próximos: ${formattedPlaces.join(', ')}
+    $userMessage<end_of_turn>
+    <start_of_turn>model
+    """;
   }
 
   Future<String> sendMessage(
@@ -395,7 +303,7 @@ class AILlamaService {
     final formattedPlaces = places
         .map(
           (place) =>
-              '${place.name} (${place.distanceInSteps} • ${place.durationInMinutes})',
+              '${place.name} (${place.distanceInSteps}, ${place.durationInMinutes})',
         )
         .toList();
 
@@ -422,14 +330,14 @@ class AILlamaService {
               fullResponse += token;
               onToken?.call(token);
             },
-            onDone: () {
-              debugPrint('✅ Response generated!');
-              debugPrint('💬 Full Response: "$fullResponse"');
-            },
+            onDone: () {},
             onError: (error) => throw error,
           );
 
       await subscription.asFuture();
+
+      debugPrint('✅ Full response: $fullResponse');
+
       return fullResponse.trim();
     } catch (e) {
       debugPrint('❌ Error: $e');
