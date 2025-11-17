@@ -19,8 +19,7 @@ class AILlamaService {
   AIModelConfig _currentModel; // Current model being used
 
   AILlamaService({AIModelConfig? model})
-    : _currentModel =
-          model ?? AIModelConfig.gemma3_1b; // Default to small model
+    : _currentModel = model ?? AIModelConfig.gemma3n; // Default to small model
 
   // Getter for current model info
   AIModelConfig get currentModel => _currentModel;
