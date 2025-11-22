@@ -168,7 +168,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Discover Nearby',
+              'Descobrir por Perto',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -177,7 +177,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Find interesting places to walk to',
+              'Encontre lugares interessantes para caminhar por perto',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
             ),
@@ -185,7 +185,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ElevatedButton.icon(
               onPressed: _currentPosition == null ? null : _fetchNearbyPlaces,
               icon: const Icon(Icons.search),
-              label: const Text('Search Nearby Places'),
+              label: const Text('Procurar Locais Próximos'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
@@ -196,7 +196,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             if (_currentPosition == null) ...[
               const SizedBox(height: 16),
               const Text(
-                'Getting your location...',
+                'Obtendo sua localização...',
                 style: TextStyle(fontSize: 12, color: AppTheme.textTertiary),
               ),
             ],
