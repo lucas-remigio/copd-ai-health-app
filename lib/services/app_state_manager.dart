@@ -70,16 +70,16 @@ class AppStateManager {
     }
 
     // Add welcome message to chat
-    if (_chatHistory.isEmpty) {
-      _chatHistory.add(
-        ChatMessage(
-          text:
-              'Olá! Sou o seu assistente de saúde. Pergunte-me sobre sugestões de caminhada, metas de passos ou locais próximos para explorar!',
-          isUser: false,
-          timestamp: DateTime.now(),
-        ),
-      );
-    }
+    // if (_chatHistory.isEmpty) {
+    //   _chatHistory.add(
+    //     ChatMessage(
+    //       text:
+    //           'Olá! Sou o seu assistente de saúde. Pergunte-me sobre sugestões de caminhada, metas de passos ou locais próximos para explorar!',
+    //       isUser: false,
+    //       timestamp: DateTime.now(),
+    //     ),
+    //   );
+    // }
 
     _isInitialized = true;
     debugPrint('✅ AppStateManager initialized');

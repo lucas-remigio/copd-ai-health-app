@@ -366,7 +366,7 @@ $userMessage<end_of_turn>
 
     try {
       String fullResponse = '';
-      int maxTokens = 500;
+      int maxTokens = 1024;
       StreamSubscription? subscription;
 
       subscription = _controller!

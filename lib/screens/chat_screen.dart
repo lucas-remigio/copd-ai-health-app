@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
 import '../theme/app_theme.dart';
@@ -247,7 +248,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendContextualMessage() async {
     final goalAchieved = _currentWeekSteps! >= _weeklyGoal!;
-    
+    debugPrint(
+      '📊 Sending contextual message. Goal achieved: $goalAchieved, Confidence level: $_confidenceLevel, Current Steps: $_currentWeekSteps, Weekly Goal: $_weeklyGoal',
+    );
+
     String contextMessage;
     if (goalAchieved) {
       // Goal achieved - include confidence
@@ -323,13 +327,22 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           if (_appState.chatHistory.length > 1)
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.refresh),
               onPressed: _appState.isGeneratingResponse
                   ? null
                   : () {
-                      _appState.clearChatHistory();
+                      setState(() {
+                        _appState.clearChatHistory();
+                        _questionnaireState =
+                            QuestionnaireState.askingWeeklyGoal;
+                        _weeklyGoal = null;
+                        _currentWeekSteps = null;
+                        _whatHappened = null;
+                        _confidenceLevel = null;
+                      });
+                      _showQuestionnaireQuestion();
                     },
-              tooltip: 'Limpar chat',
+              tooltip: 'Reiniciar questionário',
             ),
         ],
       ),
@@ -378,9 +391,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     onSubmitted: (_) => _sendMessage(),
                     enabled: !_appState.isGeneratingResponse,
                     keyboardType:
-                        _questionnaireState == QuestionnaireState.askingWeeklyGoal ||
-                        _questionnaireState == QuestionnaireState.askingCurrentSteps ||
-                        _questionnaireState == QuestionnaireState.askingConfidence
+                        _questionnaireState ==
+                                QuestionnaireState.askingWeeklyGoal ||
+                            _questionnaireState ==
+                                QuestionnaireState.askingCurrentSteps ||
+                            _questionnaireState ==
+                                QuestionnaireState.askingConfidence
                         ? TextInputType.number
                         : TextInputType.text,
                   ),
@@ -456,14 +472,42 @@ class _ChatScreenState extends State<ChatScreen> {
                   bottomRight: Radius.circular(message.isUser ? 4 : 16),
                 ),
               ),
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: message.isUser ? Colors.white : AppTheme.textPrimary,
-                  height: 1.4,
-                ),
-              ),
+              child: message.isUser
+                  ? Text(
+                      message.text,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.white,
+                        height: 1.4,
+                      ),
+                    )
+                  : MarkdownBody(
+                      data: message.text,
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(
+                          fontSize: 15,
+                          color: AppTheme.textPrimary,
+                          height: 1.4,
+                        ),
+                        strong: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                        em: const TextStyle(
+                          fontStyle: FontStyle.italic,
+                          color: AppTheme.textPrimary,
+                        ),
+                        listBullet: const TextStyle(
+                          fontSize: 15,
+                          color: AppTheme.textPrimary,
+                        ),
+                        code: TextStyle(
+                          backgroundColor: Colors.grey.shade200,
+                          fontFamily: 'monospace',
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
             ),
           ),
           if (message.isUser) ...[
