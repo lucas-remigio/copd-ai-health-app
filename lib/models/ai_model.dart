@@ -32,6 +32,15 @@ class AIModelConfig {
     description: 'Small model - Faster, less storage',
   );
 
+  static const gemma3_1b_goals = AIModelConfig(
+    name: 'Gemma 3 1B Goals',
+    url:
+        'https://huggingface.co/lucasxvr/gemma-3-1b-goals-finetuned/resolve/main/gemma-3-1b-goals-finetuned-Q4_K_M.gguf',
+    fileName: 'gemma-3-1b-goals-finetuned-Q4_K_M.gguf',
+    fallbackSizeBytes: 768 * 1024 * 1024, // 768 MB
+    description: 'Small model - Optimized for goal-adjustment tasks',
+  );
+
   // List all available models
-  static const availableModels = [gemma3n, gemma3_1b];
+  static const availableModels = [gemma3n, gemma3_1b, gemma3_1b_goals];
 }
