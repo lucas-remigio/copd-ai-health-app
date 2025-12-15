@@ -19,7 +19,8 @@ class AILlamaService {
   AIModelConfig _currentModel; // Current model being used
 
   AILlamaService({AIModelConfig? model})
-    : _currentModel = model ?? AIModelConfig.gemma3_1b_goals; // Default to small model
+    : _currentModel =
+          model ?? AIModelConfig.gemma3_1b_goals; // Default to small model
 
   // Getter for current model info
   AIModelConfig get currentModel => _currentModel;
@@ -320,6 +321,52 @@ class AILlamaService {
     try {
       String fullResponse = '';
       int maxTokens = 150;
+      StreamSubscription? subscription;
+
+      subscription = _controller!
+          .generate(prompt: prompt, maxTokens: maxTokens, temperature: 0.7)
+          .listen(
+            (token) {
+              fullResponse += token;
+              onToken?.call(token);
+            },
+            onDone: () {},
+            onError: (error) => throw error,
+          );
+
+      await subscription.asFuture();
+
+      debugPrint('✅ Full response: $fullResponse');
+
+      return fullResponse.trim();
+    } catch (e) {
+      debugPrint('❌ Error: $e');
+      return 'Falha ao gerar resposta: $e';
+    }
+  }
+
+  // Send message directly without fitness context wrapping
+  Future<String> sendDirectMessage(
+    String userMessage, {
+    TokenCallback? onToken,
+  }) async {
+    if (!_isInitialized) await initialize();
+    if (_controller == null) throw Exception('Model not loaded');
+
+    debugPrint('💬 Generating response to: $userMessage');
+
+    // Format for Gemma chat template
+    final prompt =
+        """<start_of_turn>user
+$userMessage<end_of_turn>
+<start_of_turn>model
+""";
+
+    debugPrint('🤖 Prompt: $prompt');
+
+    try {
+      String fullResponse = '';
+      int maxTokens = 500;
       StreamSubscription? subscription;
 
       subscription = _controller!

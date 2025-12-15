@@ -4,6 +4,14 @@ import 'package:health_test_app/services/app_state_manager.dart';
 import '../theme/app_theme.dart';
 import '../models/chat_message.dart';
 
+enum QuestionnaireState {
+  askingWeeklyGoal,
+  askingCurrentSteps,
+  askingWhatHappened,
+  askingConfidence,
+  completed,
+}
+
 class ChatScreen extends StatefulWidget {
   final AILlamaService aiService;
 
@@ -20,6 +28,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   int _stepCount = 0;
   String _currentStreamingText = '';
+
+  // Questionnaire state
+  QuestionnaireState _questionnaireState = QuestionnaireState.askingWeeklyGoal;
+  int? _weeklyGoal;
+  int? _currentWeekSteps;
+  String? _whatHappened;
+  int? _confidenceLevel;
 
   @override
   void initState() {
@@ -52,6 +67,34 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom();
       }
     });
+
+    // Show first question
+    _showQuestionnaireQuestion();
+  }
+
+  void _showQuestionnaireQuestion() {
+    String question = '';
+    switch (_questionnaireState) {
+      case QuestionnaireState.askingWeeklyGoal:
+        question = 'Qual é a tua meta semanal de passos por dia?';
+        break;
+      case QuestionnaireState.askingCurrentSteps:
+        question = 'Quantos passos deste em média esta semana?';
+        break;
+      case QuestionnaireState.askingWhatHappened:
+        question = 'O que aconteceu esta semana?';
+        break;
+      case QuestionnaireState.askingConfidence:
+        question =
+            'Numa escala de 1 a 10, qual é a tua confiança para aumentar a meta de passos?';
+        break;
+      case QuestionnaireState.completed:
+        return;
+    }
+
+    _appState.addChatMessage(
+      ChatMessage(text: question, isUser: false, timestamp: DateTime.now()),
+    );
   }
 
   Future<void> _sendMessage() async {
@@ -66,6 +109,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _messageController.clear();
     _appState.addChatMessage(userMessage);
+
+    // Handle questionnaire flow
+    if (_questionnaireState != QuestionnaireState.completed) {
+      _handleQuestionnaireResponse(text);
+      return;
+    }
+
+    // Regular chat flow
     _appState.setGeneratingResponse(true);
     _currentStreamingText = '';
 
@@ -84,6 +135,150 @@ class _ChatScreenState extends State<ChatScreen> {
         onToken: (token) {
           _currentStreamingText += token;
           // Update the AI message with streamed text
+          _appState.updateChatMessage(
+            aiMessageIndex,
+            ChatMessage(
+              text: _currentStreamingText,
+              isUser: false,
+              timestamp: _appState.chatHistory[aiMessageIndex].timestamp,
+            ),
+          );
+        },
+      );
+
+      _appState.setGeneratingResponse(false);
+    } catch (e) {
+      _appState.addChatMessage(
+        ChatMessage(
+          text: 'Desculpe, ocorreu um erro: $e',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+      _appState.setGeneratingResponse(false);
+    }
+  }
+
+  void _handleQuestionnaireResponse(String response) {
+    switch (_questionnaireState) {
+      case QuestionnaireState.askingWeeklyGoal:
+        final goal = int.tryParse(response);
+        if (goal == null || goal <= 0) {
+          _appState.addChatMessage(
+            ChatMessage(
+              text: 'Por favor, insere um número válido de passos.',
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+          return;
+        }
+        setState(() {
+          _weeklyGoal = goal;
+          _questionnaireState = QuestionnaireState.askingCurrentSteps;
+        });
+        _showQuestionnaireQuestion();
+        break;
+
+      case QuestionnaireState.askingCurrentSteps:
+        final steps = int.tryParse(response);
+        if (steps == null || steps < 0) {
+          _appState.addChatMessage(
+            ChatMessage(
+              text: 'Por favor, insere um número válido de passos.',
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+          return;
+        }
+        final goalAchieved = steps >= _weeklyGoal!;
+        setState(() {
+          _currentWeekSteps = steps;
+          // If goal not achieved, ask what happened. Otherwise ask confidence.
+          _questionnaireState = goalAchieved
+              ? QuestionnaireState.askingConfidence
+              : QuestionnaireState.askingWhatHappened;
+        });
+        _showQuestionnaireQuestion();
+        break;
+
+      case QuestionnaireState.askingWhatHappened:
+        if (response.trim().isEmpty) {
+          _appState.addChatMessage(
+            ChatMessage(
+              text: 'Por favor, conta-me o que aconteceu.',
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+          return;
+        }
+        setState(() {
+          _whatHappened = response;
+          _questionnaireState = QuestionnaireState.completed;
+        });
+        _sendContextualMessage();
+        break;
+
+      case QuestionnaireState.askingConfidence:
+        final confidence = int.tryParse(response);
+        if (confidence == null || confidence < 1 || confidence > 10) {
+          _appState.addChatMessage(
+            ChatMessage(
+              text: 'Por favor, insere um número entre 1 e 10.',
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+          return;
+        }
+        setState(() {
+          _confidenceLevel = confidence;
+          _questionnaireState = QuestionnaireState.completed;
+        });
+        _sendContextualMessage();
+        break;
+
+      case QuestionnaireState.completed:
+        break;
+    }
+  }
+
+  Future<void> _sendContextualMessage() async {
+    final goalAchieved = _currentWeekSteps! >= _weeklyGoal!;
+    
+    String contextMessage;
+    if (goalAchieved) {
+      // Goal achieved - include confidence
+      contextMessage =
+          '[CONTEXTO: Meta semanal: $_weeklyGoal passos/dia. '
+          'Meta atingida: Sim (média de $_currentWeekSteps passos). '
+          'Confiança para aumentar: $_confidenceLevel/10.]\n\n'
+          'Consegui a meta esta semana e '
+          'sinto-me $_confidenceLevel em 10 de confiança para aumentar.';
+    } else {
+      // Goal not achieved - include what happened
+      contextMessage =
+          '[CONTEXTO: Meta semanal: $_weeklyGoal passos/dia. '
+          'Meta atingida: Não (média de $_currentWeekSteps passos).]\n\n'
+          'Não consegui a meta porque $_whatHappened';
+    }
+
+    _appState.setGeneratingResponse(true);
+    _currentStreamingText = '';
+
+    try {
+      // Add empty AI message that will be filled with streaming text
+      final aiMessageIndex = _appState.chatHistory.length;
+      _appState.addChatMessage(
+        ChatMessage(text: '', isUser: false, timestamp: DateTime.now()),
+      );
+
+      await widget.aiService.sendDirectMessage(
+        contextMessage,
+        onToken: (token) {
+          _currentStreamingText += token;
           _appState.updateChatMessage(
             aiMessageIndex,
             ChatMessage(
@@ -168,9 +363,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Escreve a tua mensagem...',
-                      contentPadding: EdgeInsets.symmetric(
+                    decoration: InputDecoration(
+                      hintText:
+                          _questionnaireState != QuestionnaireState.completed
+                          ? 'Escreve a tua resposta...'
+                          : 'Escreve a tua mensagem...',
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
@@ -179,6 +377,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
                     enabled: !_appState.isGeneratingResponse,
+                    keyboardType:
+                        _questionnaireState == QuestionnaireState.askingWeeklyGoal ||
+                        _questionnaireState == QuestionnaireState.askingCurrentSteps ||
+                        _questionnaireState == QuestionnaireState.askingConfidence
+                        ? TextInputType.number
+                        : TextInputType.text,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -209,43 +413,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppTheme.secondary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.chat_bubble_outline,
-                size: 80,
-                color: AppTheme.secondary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Iniciar Conversa',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Fala comigo sobre qualquer coisa!\nSou especialista em fitness e saúde.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Should not reach here as we show first question in initState
+    return const SizedBox.shrink();
   }
 
   Widget _buildMessageBubble(ChatMessage message) {
