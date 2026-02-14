@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
+import 'package:health_test_app/services/performance_metrics_service.dart';
 import 'home_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -26,7 +27,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   Future<void> _initialize() async {
     try {
-      // Initialize AI model first
+      // Initialize performance metrics service
+      setState(() {
+        _status = 'A inicializar sistema de métricas...';
+        _progress = 0.0;
+      });
+      await PerformanceMetricsService().initialize();
+
+      // Initialize AI model
       await _initializeAI();
 
       // Then initialize app state (steps, location, etc.)

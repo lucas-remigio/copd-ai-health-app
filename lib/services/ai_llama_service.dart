@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:health_test_app/models/ai_model.dart';
 import 'package:health_test_app/models/place.dart';
+import 'package:health_test_app/services/performance_metrics_service.dart';
 import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -17,6 +18,7 @@ class AILlamaService {
   DateTime? _lastLogTime;
   int? _totalSizeBytes;
   AIModelConfig _currentModel; // Current model being used
+  final PerformanceMetricsService _metricsService = PerformanceMetricsService();
 
   AILlamaService({AIModelConfig? model})
     : _currentModel =
@@ -24,6 +26,9 @@ class AILlamaService {
 
   // Getter for current model info
   AIModelConfig get currentModel => _currentModel;
+
+  // Getter for metrics service
+  PerformanceMetricsService get metricsService => _metricsService;
 
   Future<void> initialize({AIModelConfig? model}) async {
     // If switching models, dispose and reset
@@ -245,23 +250,39 @@ class AILlamaService {
         "<start_of_turn>user\nDiz olá<end_of_turn>\n<start_of_turn>model\n";
 
     try {
+      // Start tracking performance
+      await _metricsService.startInference(
+        modelName: _currentModel.name,
+        messageType: 'test',
+        promptTokens: 10, // Approximate
+      );
+
       String fullResponse = '';
       StreamSubscription? subscription;
+      bool firstToken = true;
 
       subscription = _controller!
           .generate(prompt: prompt, maxTokens: 5, temperature: 0.7)
           .listen(
             (token) {
+              if (firstToken) {
+                _metricsService.recordFirstToken();
+                firstToken = false;
+              }
+              _metricsService.recordToken();
+
               fullResponse += token;
               debugPrint('Token: $token');
               onToken?.call(token); // Stream each token
             },
-            onDone: () {
+            onDone: () async {
               debugPrint('✅ Generation complete!');
               debugPrint('💬 Full Response: "$fullResponse"');
+              await _metricsService.endInference();
             },
-            onError: (error) {
+            onError: (error) async {
               debugPrint('❌ Error during generation: $error');
+              await _metricsService.endInference();
               throw error;
             },
           );
@@ -269,6 +290,7 @@ class AILlamaService {
       return fullResponse;
     } catch (e) {
       debugPrint('❌ Error: $e');
+      await _metricsService.endInference();
       return 'Teste falhou: $e';
     }
   }
@@ -319,19 +341,38 @@ class AILlamaService {
     debugPrint('🤖 Prompt: $prompt');
 
     try {
+      // Start tracking performance
+      await _metricsService.startInference(
+        modelName: _currentModel.name,
+        messageType: 'fitness_context',
+        promptTokens: prompt.length ~/ 4, // Rough estimate: 4 chars per token
+      );
+
       String fullResponse = '';
       int maxTokens = 150;
       StreamSubscription? subscription;
+      bool firstToken = true;
 
       subscription = _controller!
           .generate(prompt: prompt, maxTokens: maxTokens, temperature: 0.7)
           .listen(
             (token) {
+              if (firstToken) {
+                _metricsService.recordFirstToken();
+                firstToken = false;
+              }
+              _metricsService.recordToken();
+
               fullResponse += token;
               onToken?.call(token);
             },
-            onDone: () {},
-            onError: (error) => throw error,
+            onDone: () async {
+              await _metricsService.endInference();
+            },
+            onError: (error) async {
+              await _metricsService.endInference();
+              throw error;
+            },
           );
 
       await subscription.asFuture();
@@ -341,6 +382,7 @@ class AILlamaService {
       return fullResponse.trim();
     } catch (e) {
       debugPrint('❌ Error: $e');
+      await _metricsService.endInference();
       return 'Falha ao gerar resposta: $e';
     }
   }
@@ -365,19 +407,38 @@ $userMessage<end_of_turn>
     debugPrint('🤖 Prompt: $prompt');
 
     try {
+      // Start tracking performance
+      await _metricsService.startInference(
+        modelName: _currentModel.name,
+        messageType: 'questionnaire',
+        promptTokens: prompt.length ~/ 4, // Rough estimate: 4 chars per token
+      );
+
       String fullResponse = '';
       int maxTokens = 1024;
       StreamSubscription? subscription;
+      bool firstToken = true;
 
       subscription = _controller!
           .generate(prompt: prompt, maxTokens: maxTokens, temperature: 0.7)
           .listen(
             (token) {
+              if (firstToken) {
+                _metricsService.recordFirstToken();
+                firstToken = false;
+              }
+              _metricsService.recordToken();
+
               fullResponse += token;
               onToken?.call(token);
             },
-            onDone: () {},
-            onError: (error) => throw error,
+            onDone: () async {
+              await _metricsService.endInference();
+            },
+            onError: (error) async {
+              await _metricsService.endInference();
+              throw error;
+            },
           );
 
       await subscription.asFuture();
@@ -387,6 +448,7 @@ $userMessage<end_of_turn>
       return fullResponse.trim();
     } catch (e) {
       debugPrint('❌ Error: $e');
+      await _metricsService.endInference();
       return 'Falha ao gerar resposta: $e';
     }
   }

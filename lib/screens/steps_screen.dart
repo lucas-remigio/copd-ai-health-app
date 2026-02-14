@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
+import 'package:health_test_app/screens/performance_metrics_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import 'dart:math' as math;
@@ -156,6 +157,13 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                 await _appState.stepService.addSteps(1000);
               } else if (value == 'reset') {
                 await _appState.stepService.resetSteps();
+              } else if (value == 'metrics') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PerformanceMetricsScreen(),
+                  ),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -170,6 +178,17 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
               const PopupMenuItem(
                 value: 'reset',
                 child: Text('Reiniciar passos'),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'metrics',
+                child: Row(
+                  children: [
+                    Icon(Icons.analytics_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Performance Metrics'),
+                  ],
+                ),
               ),
             ],
           ),

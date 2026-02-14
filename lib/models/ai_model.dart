@@ -33,10 +33,10 @@ class AIModelConfig {
   );
 
   static const gemma3_1b_goals = AIModelConfig(
-    name: 'Gemma 3 1B Goals',
+    name: 'Gemma 3 1B Goals V3',
     url:
-        'https://huggingface.co/lucasxvr/gemma-3-1b-goals-finetuned/resolve/main/gemma-3-1b-goals-finetuned-Q4_K_M.gguf',
-    fileName: 'gemma-3-1b-goals-finetuned-Q4_K_M.gguf',
+        'https://huggingface.co/lucasxvr/gemma-3-1b-finetuned-goals-v3-Q4_K_M/resolve/main/gemma-3-1b-finetuned-goals-v3-Q4_K_M.gguf',
+    fileName: 'gemma-3-1b-goals-finetuned-v3-Q4_K_M.gguf',
     fallbackSizeBytes: 768 * 1024 * 1024, // 768 MB
     description: 'Small model - Optimized for goal-adjustment tasks',
   );
