@@ -275,18 +275,21 @@ class AILlamaService {
               debugPrint('Token: $token');
               onToken?.call(token); // Stream each token
             },
-            onDone: () async {
+            onDone: () {
               debugPrint('✅ Generation complete!');
               debugPrint('💬 Full Response: "$fullResponse"');
-              await _metricsService.endInference();
             },
-            onError: (error) async {
+            onError: (error) {
               debugPrint('❌ Error during generation: $error');
-              await _metricsService.endInference();
               throw error;
             },
           );
+
       await subscription.asFuture();
+
+      // End tracking after stream completes
+      await _metricsService.endInference();
+
       return fullResponse;
     } catch (e) {
       debugPrint('❌ Error: $e');
@@ -366,16 +369,14 @@ class AILlamaService {
               fullResponse += token;
               onToken?.call(token);
             },
-            onDone: () async {
-              await _metricsService.endInference();
-            },
-            onError: (error) async {
-              await _metricsService.endInference();
-              throw error;
-            },
+            onDone: () {},
+            onError: (error) => throw error,
           );
 
       await subscription.asFuture();
+
+      // End tracking after stream completes
+      await _metricsService.endInference();
 
       debugPrint('✅ Full response: $fullResponse');
 
@@ -432,16 +433,14 @@ $userMessage<end_of_turn>
               fullResponse += token;
               onToken?.call(token);
             },
-            onDone: () async {
-              await _metricsService.endInference();
-            },
-            onError: (error) async {
-              await _metricsService.endInference();
-              throw error;
-            },
+            onDone: () {},
+            onError: (error) => throw error,
           );
 
       await subscription.asFuture();
+
+      // End tracking after stream completes
+      await _metricsService.endInference();
 
       debugPrint('✅ Full response: $fullResponse');
 
