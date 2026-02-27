@@ -24,6 +24,7 @@ class PerformanceMetricsService {
   String _currentModelName = '';
   String _currentMessageType = 'chat';
   int _promptTokens = 0;
+  String? _modelFilePath;
 
   // Settings
   bool _isEnabled = true;
@@ -46,6 +47,7 @@ class PerformanceMetricsService {
     required String modelName,
     required String messageType,
     int promptTokens = 0,
+    String? modelFilePath,
   }) async {
     if (!_isEnabled) return;
 
@@ -55,6 +57,7 @@ class PerformanceMetricsService {
     _currentModelName = modelName;
     _currentMessageType = messageType;
     _promptTokens = promptTokens;
+    _modelFilePath = modelFilePath;
 
     try {
       _batteryBefore = await _battery.batteryLevel;
@@ -113,6 +116,31 @@ class PerformanceMetricsService {
         ? batteryDrain / (totalGenerationTime / 1000)
         : 0.0;
 
+    // Calculate memory metrics
+    double? modelDiskSizeMB;
+    double? appMemoryUsageMB;
+
+    try {
+      // Get model disk size
+      if (_modelFilePath != null) {
+        final modelFile = File(_modelFilePath!);
+        if (await modelFile.exists()) {
+          final sizeBytes = await modelFile.length();
+          modelDiskSizeMB = sizeBytes / (1024 * 1024);
+          debugPrint(
+            '💾 Model disk size: ${modelDiskSizeMB.toStringAsFixed(1)} MB',
+          );
+        }
+      }
+
+      // Get app RAM usage (Resident Set Size)
+      final rssBytes = ProcessInfo.currentRss;
+      appMemoryUsageMB = rssBytes / (1024 * 1024);
+      debugPrint('📦 App RAM usage: ${appMemoryUsageMB.toStringAsFixed(1)} MB');
+    } catch (e) {
+      debugPrint('⚠️ Could not collect memory metrics: $e');
+    }
+
     // Create metrics object
     final metrics = PerformanceMetrics(
       timestamp: _inferenceStartTime!,
@@ -125,6 +153,8 @@ class PerformanceMetricsService {
       batteryLevelAfter: batteryAfter,
       batteryDrain: batteryDrain,
       batteryDrainRate: batteryDrainRate,
+      modelDiskSizeMB: modelDiskSizeMB,
+      appMemoryUsageMB: appMemoryUsageMB,
       promptTokens: _promptTokens,
       messageType: _currentMessageType,
     );
@@ -168,7 +198,8 @@ class PerformanceMetricsService {
       'timestamp,model_name,time_to_first_token_ms,average_token_latency_ms,'
       'total_generation_time_ms,token_count,tokens_per_second,'
       'battery_level_before,battery_level_after,battery_drain_percent,'
-      'battery_drain_rate_percent_per_sec,prompt_tokens,message_type',
+      'battery_drain_rate_percent_per_sec,model_disk_size_mb,app_memory_usage_mb,'
+      'prompt_tokens,message_type',
     );
 
     // Data rows
@@ -187,6 +218,8 @@ class PerformanceMetricsService {
         '${metric.batteryLevelAfter},'
         '${metric.batteryDrain},'
         '${metric.batteryDrainRate.toStringAsFixed(6)},'
+        '${metric.modelDiskSizeMB?.toStringAsFixed(2) ?? ''},'
+        '${metric.appMemoryUsageMB?.toStringAsFixed(2) ?? ''},'
         '${metric.promptTokens},'
         '${metric.messageType}',
       );
@@ -274,6 +307,8 @@ class PerformanceMetricsService {
             batteryDrain: json['battery_drain_percent'],
             batteryDrainRate: json['battery_drain_rate_percent_per_sec']
                 .toDouble(),
+            modelDiskSizeMB: json['model_disk_size_mb']?.toDouble(),
+            appMemoryUsageMB: json['app_memory_usage_mb']?.toDouble(),
             promptTokens: json['prompt_tokens'],
             messageType: json['message_type'],
           );

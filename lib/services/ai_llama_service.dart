@@ -251,10 +251,12 @@ class AILlamaService {
 
     try {
       // Start tracking performance
+      final modelPath = (await _getModelFile()).path;
       await _metricsService.startInference(
         modelName: _currentModel.name,
         messageType: 'test',
         promptTokens: 10, // Approximate
+        modelFilePath: modelPath,
       );
 
       String fullResponse = '';
@@ -345,10 +347,12 @@ class AILlamaService {
 
     try {
       // Start tracking performance
+      final modelPath = (await _getModelFile()).path;
       await _metricsService.startInference(
         modelName: _currentModel.name,
         messageType: 'fitness_context',
         promptTokens: prompt.length ~/ 4, // Rough estimate: 4 chars per token
+        modelFilePath: modelPath,
       );
 
       String fullResponse = '';
@@ -409,10 +413,12 @@ $userMessage<end_of_turn>
 
     try {
       // Start tracking performance
+      final modelPath = (await _getModelFile()).path;
       await _metricsService.startInference(
         modelName: _currentModel.name,
         messageType: 'questionnaire',
         promptTokens: prompt.length ~/ 4, // Rough estimate: 4 chars per token
+        modelFilePath: modelPath,
       );
 
       String fullResponse = '';

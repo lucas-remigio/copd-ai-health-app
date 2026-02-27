@@ -14,6 +14,10 @@ class PerformanceMetrics {
   final int batteryDrain; // Percentage consumed
   final double batteryDrainRate; // % per second
 
+  // Memory metrics
+  final double? modelDiskSizeMB; // Model file size on disk
+  final double? appMemoryUsageMB; // App RAM usage during inference
+
   // Context information
   final int promptTokens; // Estimated prompt size
   final String messageType; // 'questionnaire', 'chat', 'test'
@@ -29,6 +33,8 @@ class PerformanceMetrics {
     required this.batteryLevelAfter,
     required this.batteryDrain,
     required this.batteryDrainRate,
+    this.modelDiskSizeMB,
+    this.appMemoryUsageMB,
     required this.promptTokens,
     required this.messageType,
   });
@@ -46,6 +52,8 @@ class PerformanceMetrics {
     'battery_level_after': batteryLevelAfter,
     'battery_drain_percent': batteryDrain,
     'battery_drain_rate_percent_per_sec': batteryDrainRate,
+    'model_disk_size_mb': modelDiskSizeMB,
+    'app_memory_usage_mb': appMemoryUsageMB,
     'prompt_tokens': promptTokens,
     'message_type': messageType,
   };
@@ -70,6 +78,10 @@ Time: ${timestamp.toString().split('.')[0]}
   • After: $batteryLevelAfter%
   • Drain: $batteryDrain%
   • Drain Rate: ${batteryDrainRate.toStringAsFixed(4)}%/sec
+
+💾 MEMORY:
+  • Model Disk Size: ${modelDiskSizeMB?.toStringAsFixed(1) ?? 'N/A'} MB
+  • App RAM Usage: ${appMemoryUsageMB?.toStringAsFixed(1) ?? 'N/A'} MB
   
 📝 CONTEXT:
   • Prompt Tokens: ~$promptTokens
@@ -125,13 +137,17 @@ Time: ${timestamp.toString().split('.')[0]}
   }
 
   static double _average(List<num> values) {
-    return values.reduce((a, b) => a + b) / values.length;
+    if (values.isEmpty) return 0.0;
+    return values.fold<double>(0.0, (a, b) => a + b) / values.length;
   }
 
   static double _standardDeviation(List<num> values) {
+    if (values.isEmpty) return 0.0;
     final avg = _average(values);
     final variance =
-        values.map((v) => (v - avg) * (v - avg)).reduce((a, b) => a + b) /
+        values
+            .map((v) => (v - avg) * (v - avg))
+            .fold<double>(0.0, (a, b) => a + b) /
         values.length;
     return variance;
   }
