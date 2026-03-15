@@ -4,6 +4,32 @@ import 'package:health/health.dart';
 class HealthService {
   final Health _health = Health();
 
+  /// Extract a numeric value from health package value wrappers.
+  ///
+  /// Newer versions may return wrapper objects (for example
+  /// NumericHealthValue) instead of raw num values.
+  int _extractStepsValue(dynamic rawValue) {
+    if (rawValue is num) return rawValue.toInt();
+
+    // Handle wrapped values exposed by the plugin (e.g. NumericHealthValue).
+    try {
+      final dynamic value = (rawValue as dynamic).numericValue;
+      if (value is num) return value.toInt();
+    } catch (_) {
+      // Fall through to string-based extraction below.
+    }
+
+    // Last-resort fallback: parse first numeric token from string output.
+    final text = rawValue.toString();
+    final match = RegExp(r'-?\d+(?:\.\d+)?').firstMatch(text);
+    if (match != null) {
+      final parsed = double.tryParse(match.group(0)!);
+      if (parsed != null) return parsed.toInt();
+    }
+
+    return 0;
+  }
+
   /// Check if Health Connect is available
   Future<bool> isHealthConnectAvailable() async {
     try {
@@ -80,7 +106,10 @@ class HealthService {
       int totalSteps = 0;
       for (var data in healthData) {
         if (data.type == HealthDataType.STEPS) {
-          final value = (data.value as num).toInt();
+          final value = _extractStepsValue(data.value);
+          debugPrint(
+            '  Step raw type: ${data.value.runtimeType}, parsed: $value, at ${data.dateFrom}',
+          );
           debugPrint('  Step entry: $value steps at ${data.dateFrom}');
           totalSteps += value;
         }
