@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
@@ -18,6 +20,8 @@ class StepsScreen extends StatefulWidget {
 
 class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   final _appState = AppStateManager();
+  StreamSubscription<int>? _stepCountSubscription;
+  StreamSubscription<int>? _stepGoalSubscription;
   int _stepCount = 0;
   int _stepGoal = 10000;
   String _errorMessage = '';
@@ -31,6 +35,8 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _stepCountSubscription?.cancel();
+    _stepGoalSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     // Don't dispose singleton
     super.dispose();
@@ -56,6 +62,8 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
     final activityStatus = await Permission.activityRecognition.request();
     final locationStatus = await Permission.location.request();
 
+    if (!mounted) return;
+
     if (!locationStatus.isGranted) {
       setState(() => _errorMessage = 'Location permission denied');
       return;
@@ -70,15 +78,26 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
 
   Future<void> _initializeStepDetection() async {
     // AppStateManager already initialized in main, just get current count
-    _stepCount = _appState.stepService.currentStepCount;
-    _stepGoal = _appState.stepGoal;
+    if (!mounted) return;
 
-    _appState.stepService.stepCountStream.listen(
-      (steps) => setState(() => _stepCount = steps),
-      onError: (error) => debugPrint('Step detection error: $error'),
-    );
+    setState(() {
+      _stepCount = _appState.stepService.currentStepCount;
+      _stepGoal = _appState.stepGoal;
+    });
 
-    _appState.stepGoalStream.listen((goal) => setState(() => _stepGoal = goal));
+    await _stepCountSubscription?.cancel();
+    _stepCountSubscription = _appState.stepService.stepCountStream.listen((
+      steps,
+    ) {
+      if (!mounted) return;
+      setState(() => _stepCount = steps);
+    }, onError: (error) => debugPrint('Step detection error: $error'));
+
+    await _stepGoalSubscription?.cancel();
+    _stepGoalSubscription = _appState.stepGoalStream.listen((goal) {
+      if (!mounted) return;
+      setState(() => _stepGoal = goal);
+    });
   }
 
   void _showGoalDialog() {

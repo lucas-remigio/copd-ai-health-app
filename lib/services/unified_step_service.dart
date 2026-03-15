@@ -39,6 +39,18 @@ class UnifiedStepService {
   int get currentStepCount => _stepCount;
   StepDetectionMethod get activeMethod => _activeMethod;
 
+  /// Returns average daily steps from Health Connect when that method is active.
+  Future<int?> getAverageDailyStepsFromHealthConnect({int days = 7}) async {
+    if (_activeMethod != StepDetectionMethod.healthConnect) return null;
+
+    try {
+      return await _healthService.getAverageDailySteps(days: days);
+    } catch (e) {
+      debugPrint('❌ Failed to fetch Health Connect daily average: $e');
+      return null;
+    }
+  }
+
   // Single method to get all UI info
   StepMethodInfo get methodInfo {
     const methodData = {

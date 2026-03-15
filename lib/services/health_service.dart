@@ -124,6 +124,56 @@ class HealthService {
     }
   }
 
+  /// Get average daily steps for the last [days] days (including today).
+  Future<int> getAverageDailySteps({int days = 7}) async {
+    final now = DateTime.now();
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: days - 1));
+
+    debugPrint('📈 Fetching average daily steps from $start to $now');
+
+    try {
+      final healthData = await _health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: now,
+        types: [HealthDataType.STEPS],
+      );
+
+      debugPrint('📦 Average window received ${healthData.length} data points');
+
+      final Map<DateTime, int> dayTotals = {};
+      for (final data in healthData) {
+        if (data.type != HealthDataType.STEPS) continue;
+
+        final dayKey = DateTime(
+          data.dateFrom.year,
+          data.dateFrom.month,
+          data.dateFrom.day,
+        );
+        final value = _extractStepsValue(data.value);
+        dayTotals[dayKey] = (dayTotals[dayKey] ?? 0) + value;
+      }
+
+      if (dayTotals.isEmpty) {
+        debugPrint('ℹ️ No step data found for average window');
+        return 0;
+      }
+
+      final total = dayTotals.values.fold<int>(0, (sum, value) => sum + value);
+      final average = (total / days).round();
+
+      debugPrint('✅ Average daily steps ($days days): $average');
+      return average;
+    } catch (e) {
+      debugPrint('❌ Error fetching average daily steps: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      return 0;
+    }
+  }
+
   /// Stream step updates (polls every 10 seconds)
   Stream<int> get stepCountStream async* {
     while (true) {

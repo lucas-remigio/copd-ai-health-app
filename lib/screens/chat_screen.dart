@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
+import 'package:health_test_app/services/unified_step_service.dart';
 import '../theme/app_theme.dart';
 import '../models/chat_message.dart';
 
@@ -51,7 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _initializeContext() {
+  Future<void> _initializeContext() async {
     // Get current step count and listen to changes
     _stepCount = _appState.stepService.currentStepCount;
 
@@ -69,7 +70,52 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
 
-    // Show first question
+    await _bootstrapQuestionnaire();
+  }
+
+  Future<void> _bootstrapQuestionnaire() async {
+    if (_appState.stepService.activeMethod ==
+        StepDetectionMethod.healthConnect) {
+      final goal = _appState.stepGoal;
+      _weeklyGoal = goal;
+
+      _appState.addChatMessage(
+        ChatMessage(
+          text:
+              'Usei automaticamente a tua meta atual da app: **$goal passos/dia**.',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+
+      final average =
+          await _appState.stepService.getAverageDailyStepsFromHealthConnect(
+            days: 7,
+          ) ??
+          0;
+      _currentWeekSteps = average;
+
+      _appState.addChatMessage(
+        ChatMessage(
+          text:
+              'Fui buscar ao Health Connect a tua média diária dos últimos 7 dias: **$average passos/dia**.',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+
+      final goalAchieved = average >= goal;
+      setState(() {
+        _questionnaireState = goalAchieved
+            ? QuestionnaireState.askingConfidence
+            : QuestionnaireState.askingWhatHappened;
+      });
+
+      _showQuestionnaireQuestion();
+      return;
+    }
+
+    // Fallback for non-Health Connect flows.
     _showQuestionnaireQuestion();
   }
 
@@ -340,7 +386,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _whatHappened = null;
                         _confidenceLevel = null;
                       });
-                      _showQuestionnaireQuestion();
+                      _bootstrapQuestionnaire();
                     },
               tooltip: 'Reiniciar questionário',
             ),
