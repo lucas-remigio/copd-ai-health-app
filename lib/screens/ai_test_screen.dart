@@ -15,7 +15,7 @@ class AITestScreen extends StatefulWidget {
 
 class _AITestScreenState extends State<AITestScreen> {
   late TestRunnerService _testRunner;
-  final List<TestCase> _testCases = TestCase.getDefaultCases();
+  List<TestCase> _testCases = TestCase.getDefaultCases();
 
   bool _isRunning = false;
   int _currentTestIndex = 0;
@@ -29,8 +29,10 @@ class _AITestScreenState extends State<AITestScreen> {
 
   Future<void> _runTests() async {
     setState(() {
+      _testCases = TestCase.getDefaultCases();
       _isRunning = true;
       _currentStatus = 'Starting tests...';
+      _currentTestIndex = 0;
     });
 
     await _testRunner.runAllTests(

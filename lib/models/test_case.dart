@@ -1,3 +1,5 @@
+import 'dart:math';
+
 class TestCase {
   final String name;
   final String input;
@@ -14,6 +16,67 @@ class TestCase {
     this.mustCalculate = false,
     this.expectedNewGoal,
   });
+
+  static const List<int> _allowedWeeklyGoals = [
+    3000,
+    3500,
+    4000,
+    4500,
+    5000,
+    5500,
+    6000,
+    6500,
+    7000,
+    7500,
+    8000,
+    8500,
+    9000,
+    9500,
+    10000,
+    10500,
+    11000,
+    11500,
+    12000,
+    12500,
+  ];
+
+  static const List<int> _allowedConfidenceLevels = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+  ];
+
+  static const List<int> _allowedAchievedStepBonuses = [
+    150,
+    200,
+    300,
+    350,
+    400,
+    500,
+    700,
+    800,
+    900,
+    1000,
+    1200,
+    1300,
+  ];
+
+  static const List<int> _allowedMissedStepShortfalls = [
+    500,
+    700,
+    800,
+    1200,
+    1500,
+    1800,
+    2000,
+  ];
 
   static TestCase goalAchieved({
     required String name,
@@ -98,205 +161,145 @@ class TestCase {
     return (rawGoal / 10).round() * 10;
   }
 
-  static List<TestCase> getDefaultCases() {
+  static List<TestCase> getDefaultCases({int? seed}) {
+    final random = Random(seed);
+
     return [
-      // === WORKFLOW 1: Goal Achieved ===
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Low Confidence',
-        weeklyGoal: 5000,
-        averageSteps: 5300,
-        confidence: 3,
-        additionalExpectedKeywords: ['meta'],
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Medium Confidence',
-        weeklyGoal: 7000,
-        averageSteps: 7500,
-        confidence: 6,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - High Confidence',
-        weeklyGoal: 8000,
-        averageSteps: 9000,
-        confidence: 9,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Edge Case (Small)',
-        weeklyGoal: 3000,
-        averageSteps: 3200,
-        confidence: 5,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 1',
-        weeklyGoal: 6000,
-        averageSteps: 6200,
-        confidence: 1,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 2',
-        weeklyGoal: 5000,
-        averageSteps: 5400,
-        confidence: 2,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 4',
-        weeklyGoal: 7500,
-        averageSteps: 7800,
-        confidence: 4,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 5',
-        weeklyGoal: 4000,
-        averageSteps: 4300,
-        confidence: 5,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 7',
-        weeklyGoal: 9000,
-        averageSteps: 9500,
-        confidence: 7,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 8',
-        weeklyGoal: 6500,
-        averageSteps: 7000,
-        confidence: 8,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Confidence 10',
-        weeklyGoal: 10000,
-        averageSteps: 11000,
-        confidence: 10,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Large Goal',
-        weeklyGoal: 12000,
-        averageSteps: 12500,
-        confidence: 3,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - Odd Goal',
-        weeklyGoal: 5500,
-        averageSteps: 5800,
-        confidence: 6,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 3500 Steps Confidence 2',
-        weeklyGoal: 3500,
-        averageSteps: 3650,
-        confidence: 2,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 4500 Steps Confidence 4',
-        weeklyGoal: 4500,
-        averageSteps: 4700,
-        confidence: 4,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 8500 Steps Confidence 3',
-        weeklyGoal: 8500,
-        averageSteps: 8900,
-        confidence: 3,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 9500 Steps Confidence 7',
-        weeklyGoal: 9500,
-        averageSteps: 10200,
-        confidence: 7,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 10500 Steps Confidence 5',
-        weeklyGoal: 10500,
-        averageSteps: 11000,
-        confidence: 5,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 3000 Steps Confidence 6',
-        weeklyGoal: 3000,
-        averageSteps: 3200,
-        confidence: 6,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 3500 Steps Confidence 9',
-        weeklyGoal: 3500,
-        averageSteps: 3800,
-        confidence: 9,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 4500 Steps Confidence 10',
-        weeklyGoal: 4500,
-        averageSteps: 4950,
-        confidence: 10,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 5500 Steps Confidence 3',
-        weeklyGoal: 5500,
-        averageSteps: 5700,
-        confidence: 3,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 7500 Steps Confidence 2',
-        weeklyGoal: 7500,
-        averageSteps: 7850,
-        confidence: 2,
-      ),
-      TestCase.goalAchieved(
-        name: 'Goal Achieved - 9500 Steps Confidence 4',
-        weeklyGoal: 9500,
-        averageSteps: 9950,
-        confidence: 4,
-      ),
-      TestCase.notAchievedHealth(
-        name: 'Not Achieved - Fever (Health)',
-        weeklyGoal: 6000,
-        averageSteps: 4200,
+      ..._buildRandomGoalAchievedCases(random, count: 24),
+      ..._buildRandomHealthCases(random),
+      ..._buildRandomOtherCases(random),
+    ];
+  }
+
+  static List<TestCase> _buildRandomGoalAchievedCases(
+    Random random, {
+    required int count,
+  }) {
+    final cases = <TestCase>[];
+    final confidencePool = List<int>.from(_allowedConfidenceLevels)
+      ..shuffle(random);
+
+    for (var index = 0; index < count; index++) {
+      final weeklyGoal = _pick(random, _allowedWeeklyGoals);
+      final confidence = index < confidencePool.length
+          ? confidencePool[index]
+          : _pick(random, _allowedConfidenceLevels);
+      final averageSteps = _generateAchievedAverage(random, weeklyGoal);
+
+      cases.add(
+        goalAchieved(
+          name:
+              'Goal Achieved - Case ${index + 1} ($weeklyGoal passos, confiança $confidence)',
+          weeklyGoal: weeklyGoal,
+          averageSteps: averageSteps,
+          confidence: confidence,
+          additionalExpectedKeywords: index == 0 ? ['meta'] : const [],
+        ),
+      );
+    }
+
+    return cases;
+  }
+
+  static List<TestCase> _buildRandomHealthCases(Random random) {
+    final feverGoal = _pick(random, _allowedWeeklyGoals);
+    final breathlessnessGoal = _pick(random, _allowedWeeklyGoals);
+    final chestPainGoal = _pick(random, _allowedWeeklyGoals);
+
+    return [
+      notAchievedHealth(
+        name: 'Not Achieved - Fever (Health) - $feverGoal',
+        weeklyGoal: feverGoal,
+        averageSteps: _generateMissedAverage(random, feverGoal),
         reason: 'tive febre e não pude fazer exercício.',
         additionalExpectedKeywords: ['recuperação', 'saúde'],
-        mustNotContain: ['aumentar', 'nova meta', '7000', '5000'],
+        mustNotContain: [
+          'aumentar',
+          'nova meta',
+          ..._randomDistractorGoals(random, actualGoal: feverGoal, count: 2),
+        ],
       ),
-      TestCase.notAchievedHealth(
-        name: 'Not Achieved - Breathlessness (Health)',
-        weeklyGoal: 7000,
-        averageSteps: 5500,
+      notAchievedHealth(
+        name: 'Not Achieved - Breathlessness (Health) - $breathlessnessGoal',
+        weeklyGoal: breathlessnessGoal,
+        averageSteps: _generateMissedAverage(random, breathlessnessGoal),
         reason: 'senti muita falta de ar.',
         additionalExpectedKeywords: ['compreendo', 'médico'],
         mustNotContain: ['aumentar', 'reduzir'],
       ),
-      TestCase.notAchievedHealth(
-        name: 'Not Achieved - Chest Pain (Health)',
-        weeklyGoal: 8000,
-        averageSteps: 6000,
+      notAchievedHealth(
+        name: 'Not Achieved - Chest Pain (Health) - $chestPainGoal',
+        weeklyGoal: chestPainGoal,
+        averageSteps: _generateMissedAverage(random, chestPainGoal),
         reason: 'senti dores no peito.',
         additionalExpectedKeywords: ['saúde', 'prioridade'],
         mustNotContain: ['aumentar', 'culpa'],
       ),
+    ];
+  }
 
-      // === WORKFLOW 3: Goal Not Achieved - Other ===
-      TestCase.notAchievedOther(
-        name: 'Not Achieved - Rain (Other)',
-        weeklyGoal: 5000,
-        averageSteps: 4300,
+  static List<TestCase> _buildRandomOtherCases(Random random) {
+    final rainGoal = _pick(random, _allowedWeeklyGoals);
+    final workGoal = _pick(random, _allowedWeeklyGoals);
+    final travelGoal = _pick(random, _allowedWeeklyGoals);
+
+    return [
+      notAchievedOther(
+        name: 'Not Achieved - Rain (Other) - $rainGoal',
+        weeklyGoal: rainGoal,
+        averageSteps: _generateMissedAverage(random, rainGoal),
         reason: 'choveu muito e não consegui sair.',
         additionalExpectedKeywords: ['natural', 'estratégias'],
         mustNotContain: ['aumentar', 'culpa', 'preocupes'],
       ),
-      TestCase.notAchievedOther(
-        name: 'Not Achieved - Work (Other)',
-        weeklyGoal: 6000,
-        averageSteps: 4800,
+      notAchievedOther(
+        name: 'Not Achieved - Work (Other) - $workGoal',
+        weeklyGoal: workGoal,
+        averageSteps: _generateMissedAverage(random, workGoal),
         reason: 'tive muito trabalho esta semana.',
         additionalExpectedKeywords: ['compreendo', 'retomar'],
         mustNotContain: ['aumentar', 'reduzir'],
       ),
-      TestCase.notAchievedOther(
-        name: 'Not Achieved - Travel (Other)',
-        weeklyGoal: 10000,
-        averageSteps: 8500,
+      notAchievedOther(
+        name: 'Not Achieved - Travel (Other) - $travelGoal',
+        weeklyGoal: travelGoal,
+        averageSteps: _generateMissedAverage(random, travelGoal),
         reason: 'estive de viagem.',
         additionalExpectedKeywords: ['normal', 'próxima'],
         mustNotContain: ['aumentar', 'falha'],
       ),
     ];
+  }
+
+  static int _generateAchievedAverage(Random random, int weeklyGoal) {
+    return weeklyGoal + _pick(random, _allowedAchievedStepBonuses);
+  }
+
+  static int _generateMissedAverage(Random random, int weeklyGoal) {
+    final validShortfalls = _allowedMissedStepShortfalls
+        .where((shortfall) => weeklyGoal - shortfall > 0)
+        .toList();
+
+    return weeklyGoal - _pick(random, validShortfalls);
+  }
+
+  static List<String> _randomDistractorGoals(
+    Random random, {
+    required int actualGoal,
+    required int count,
+  }) {
+    final distractors =
+        _allowedWeeklyGoals
+            .where((goal) => goal != actualGoal)
+            .map((goal) => '$goal')
+            .toList()
+          ..shuffle(random);
+
+    return distractors.take(count).toList();
+  }
+
+  static T _pick<T>(Random random, List<T> values) {
+    return values[random.nextInt(values.length)];
   }
 }
 
