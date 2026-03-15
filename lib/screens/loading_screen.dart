@@ -25,10 +25,15 @@ class _LoadingScreenState extends State<LoadingScreen> {
     _initialize();
   }
 
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
   Future<void> _initialize() async {
     try {
       // Initialize performance metrics service
-      setState(() {
+      _safeSetState(() {
         _status = 'A inicializar sistema de métricas...';
         _progress = 0.0;
       });
@@ -38,14 +43,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
       await _initializeAI();
 
       // Then initialize app state (steps, location, etc.)
-      setState(() {
+      _safeSetState(() {
         _status = 'A inicializar serviços da app...';
         _progress = 0.0;
       });
 
       await _appState.initialize();
 
-      setState(() {
+      _safeSetState(() {
         _status = 'Pronto!';
         _progress = 1.0;
       });
@@ -60,7 +65,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         );
       }
     } catch (e) {
-      setState(() {
+      _safeSetState(() {
         _status = 'Falha ao inicializar: $e';
         _hasError = true;
       });
@@ -69,14 +74,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   Future<void> _initializeAI() async {
     try {
-      setState(() {
+      _safeSetState(() {
         _status = 'A descarregar modelo de IA...';
         _progress = 0.0;
       });
 
       // Set progress callback
       _aiService.onDownloadProgress = (progress) {
-        setState(() {
+        _safeSetState(() {
           _progress = progress;
           _status =
               'A descarregar modelo de IA... ${(progress * 100).toStringAsFixed(1)}%';
@@ -85,7 +90,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       await _aiService.initialize();
 
-      setState(() {
+      _safeSetState(() {
         _status = 'A testar modelo de IA...';
         _progress = 1.0;
         _streamingTestResponse = '';
@@ -93,7 +98,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       final testResponse = await _aiService.getTestResponse(
         onToken: (token) {
-          setState(() {
+          _safeSetState(() {
             _streamingTestResponse += token;
             _status =
                 'A testar modelo de IA...\nStreaming: $_streamingTestResponse';
@@ -101,7 +106,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         },
       );
 
-      setState(() {
+      _safeSetState(() {
         _status = 'Resposta IA:\n$testResponse';
       });
 

@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 class AIRecommendationCard extends StatelessWidget {
   final String recommendation;
   final bool isLoading;
-  final String streamingText; // New: Streaming text
+  final String streamingText;
   final VoidCallback onRefresh;
 
   const AIRecommendationCard({
     super.key,
     required this.recommendation,
     required this.isLoading,
-    this.streamingText = '', // Default empty
+    this.streamingText = '',
     required this.onRefresh,
   });
 
@@ -58,7 +58,7 @@ class AIRecommendationCard extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         streamingText.isNotEmpty
-                            ? streamingText // Show streaming text
+                            ? streamingText
                             : 'AI is analyzing your options...',
                         style: const TextStyle(
                           fontSize: 14,

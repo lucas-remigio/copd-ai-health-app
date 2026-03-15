@@ -159,45 +159,30 @@ class UnifiedStepService {
     debugPrint('👟 Trying hardware pedometer...');
 
     try {
-      final completer = Completer<bool>();
-      StreamSubscription? testSubscription;
+      final firstStep = await _pedometerService.stepCountStream.first.timeout(
+        const Duration(seconds: 2),
+      );
 
-      testSubscription = _pedometerService.stepCountStream.listen(
+      debugPrint('  ✅ Pedometer working! Steps: ${firstStep.steps}');
+      _activeMethod = StepDetectionMethod.pedometer;
+      _stepCount = firstStep.steps;
+      _stepController.add(_stepCount);
+
+      await _currentSubscription?.cancel();
+      _currentSubscription = _pedometerService.stepCountStream.listen(
         (stepCount) {
-          debugPrint('  ✅ Pedometer working! Steps: ${stepCount.steps}');
-          _activeMethod = StepDetectionMethod.pedometer;
           _stepCount = stepCount.steps;
           _stepController.add(_stepCount);
-
-          testSubscription?.cancel();
-
-          _currentSubscription = _pedometerService.stepCountStream.listen(
-            (stepCount) {
-              _stepCount = stepCount.steps;
-              _stepController.add(_stepCount);
-            },
-            onError: (error) {
-              debugPrint('Pedometer stream error: $error');
-            },
-          );
-
-          if (!completer.isCompleted) completer.complete(true);
         },
         onError: (error) {
-          debugPrint('  ❌ Pedometer error: $error');
-          testSubscription?.cancel();
-          if (!completer.isCompleted) completer.complete(false);
+          debugPrint('Pedometer stream error: $error');
         },
       );
 
-      return await completer.future.timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {
-          debugPrint('  ❌ Pedometer timeout');
-          testSubscription?.cancel();
-          return false;
-        },
-      );
+      return true;
+    } on TimeoutException {
+      debugPrint('  ❌ Pedometer timeout');
+      return false;
     } catch (e) {
       debugPrint('  ❌ Pedometer exception: $e');
       return false;

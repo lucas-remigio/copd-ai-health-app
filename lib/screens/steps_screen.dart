@@ -7,6 +7,7 @@ import 'package:health_test_app/screens/performance_metrics_screen.dart';
 import 'package:health_test_app/screens/ai_test_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_view.dart';
 import 'dart:math' as math;
 
 class StepsScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   StreamSubscription<int>? _stepGoalSubscription;
   int _stepCount = 0;
   int _stepGoal = 10000;
-  String _errorMessage = '';
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -53,7 +54,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
 
   Future<void> _initialize() async {
     await _requestPermissions();
-    if (_errorMessage.isEmpty) {
+    if (_errorMessage == null) {
       await _initializeStepDetection();
     }
   }
@@ -73,7 +74,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
       debugPrint('⚠️ Activity recognition not granted');
     }
 
-    setState(() => _errorMessage = '');
+    setState(() => _errorMessage = null);
   }
 
   Future<void> _initializeStepDetection() async {
@@ -136,24 +137,10 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (_errorMessage.isNotEmpty) {
+    if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Passos')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
-              const SizedBox(height: 16),
-              Text(_errorMessage, textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _initialize,
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
-        ),
+        body: ErrorView(errorMessage: _errorMessage!, onRetry: _initialize),
       );
     }
 
@@ -335,7 +322,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
+                        color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -382,7 +369,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.accent.withOpacity(0.1),
+                          color: AppTheme.accent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -402,8 +389,8 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppTheme.success.withOpacity(0.1),
-                        AppTheme.success.withOpacity(0.05),
+                        AppTheme.success.withValues(alpha: 0.1),
+                        AppTheme.success.withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
@@ -27,6 +29,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final _appState = AppStateManager();
+  StreamSubscription<int>? _stepCountSubscription;
+  StreamSubscription<void>? _chatUpdateSubscription;
 
   int _stepCount = 0;
   String _currentStreamingText = '';
@@ -46,6 +50,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _stepCountSubscription?.cancel();
+    _chatUpdateSubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     // Don't dispose singleton
@@ -56,14 +62,18 @@ class _ChatScreenState extends State<ChatScreen> {
     // Get current step count and listen to changes
     _stepCount = _appState.stepService.currentStepCount;
 
-    _appState.stepService.stepCountStream.listen((steps) {
+    await _stepCountSubscription?.cancel();
+    _stepCountSubscription = _appState.stepService.stepCountStream.listen((
+      steps,
+    ) {
       if (mounted) {
         setState(() => _stepCount = steps);
       }
     });
 
     // Listen to chat updates from the singleton
-    _appState.chatUpdateStream.listen((_) {
+    await _chatUpdateSubscription?.cancel();
+    _chatUpdateSubscription = _appState.chatUpdateStream.listen((_) {
       if (mounted) {
         setState(() {});
         _scrollToBottom();
@@ -93,6 +103,8 @@ class _ChatScreenState extends State<ChatScreen> {
             days: 7,
           ) ??
           0;
+      if (!mounted) return;
+
       _currentWeekSteps = average;
 
       _appState.addChatMessage(
@@ -105,6 +117,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       final goalAchieved = average >= goal;
+      if (!mounted) return;
       setState(() {
         _questionnaireState = goalAchieved
             ? QuestionnaireState.askingConfidence
@@ -493,7 +506,7 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppTheme.secondary.withOpacity(0.1),
+                color: AppTheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: const Icon(

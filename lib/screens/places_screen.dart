@@ -4,6 +4,7 @@ import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
 import '../models/place.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_view.dart';
 import '../widgets/places_map.dart';
 import '../utils/map_utils.dart';
 
@@ -114,7 +115,14 @@ class _PlacesScreenState extends State<PlacesScreen> {
 
   Widget _buildBody() {
     if (_errorMessage != null) {
-      return _buildErrorView();
+      return ErrorView(
+        errorMessage: _errorMessage!,
+        onRetry: () {
+          if (!mounted) return;
+          setState(() => _errorMessage = null);
+          _fetchNearbyPlaces();
+        },
+      );
     }
 
     if (!_hasSearched) {
@@ -132,34 +140,6 @@ class _PlacesScreenState extends State<PlacesScreen> {
     return _buildPlacesList();
   }
 
-  Widget _buildErrorView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                setState(() => _errorMessage = null);
-                _refreshLocation();
-              },
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSearchPrompt() {
     return Center(
       child: Padding(
@@ -170,7 +150,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -317,7 +297,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(

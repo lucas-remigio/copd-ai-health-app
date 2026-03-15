@@ -32,7 +32,7 @@ class AIModelConfig {
     description: 'Small model - Faster, less storage',
   );
 
-  static const gemma3_1b_goals = AIModelConfig(
+  static const gemma31bGoals = AIModelConfig(
     name: 'Gemma 3 1B Goals V3',
     url:
         'https://huggingface.co/lucasxvr/gemma-3-1b-finetuned-goals-v3-Q4_K_M/resolve/main/gemma-3-1b-finetuned-goals-v3-Q4_K_M.gguf',
@@ -42,5 +42,5 @@ class AIModelConfig {
   );
 
   // List all available models
-  static const availableModels = [gemma3n, gemma3_1b, gemma3_1b_goals];
+  static const availableModels = [gemma3n, gemma3_1b, gemma31bGoals];
 }
