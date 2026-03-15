@@ -33,6 +33,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
 
   void _loadCachedData() {
     // Load from singleton
+    if (!mounted) return;
     setState(() {
       _currentPosition = _appState.currentPosition;
       _nearbyPlaces = _appState.nearbyPlaces;
@@ -43,11 +44,13 @@ class _PlacesScreenState extends State<PlacesScreen> {
   Future<void> _refreshLocation() async {
     try {
       await _appState.refreshLocation();
+      if (!mounted) return;
       setState(() {
         _currentPosition = _appState.currentPosition;
         _errorMessage = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _errorMessage = 'Failed to get location: $e');
       debugPrint('Location error: $e');
     }
@@ -55,10 +58,18 @@ class _PlacesScreenState extends State<PlacesScreen> {
 
   Future<void> _fetchNearbyPlaces() async {
     if (!_appState.hasLocation) {
-      setState(() => _errorMessage = 'Location not available');
-      return;
+      await _refreshLocation();
+      if (!_appState.hasLocation) {
+        if (!mounted) return;
+        setState(
+          () => _errorMessage =
+              'Location not available. Please grant location permission and try again.',
+        );
+        return;
+      }
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -66,6 +77,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
 
     try {
       await _appState.fetchNearbyPlaces();
+      if (!mounted) return;
       setState(() {
         _nearbyPlaces = _appState.nearbyPlaces;
         _currentPosition = _appState.currentPosition;
@@ -73,6 +85,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
         _hasSearched = true;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Failed to fetch places: $e';
         _isLoading = false;

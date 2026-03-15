@@ -13,10 +13,25 @@ class PlacesService {
   static const int _maxResults = 10;
 
   Future<List<Place>> fetchNearbyPlaces(Position position) async {
+    if (_apiKey.isEmpty || _apiKey == 'YOUR_API_KEY') {
+      throw Exception(
+        'Google Places API key is missing. Set GOOGLE_PLACES_API_KEY in .env.',
+      );
+    }
+
     final response = await _makeApiRequest(position);
 
     if (response.statusCode != 200) {
       debugPrint('API Error: ${response.statusCode}');
+      debugPrint('API Error body: ${response.body}');
+
+      if (response.statusCode == 403) {
+        throw Exception(
+          'Failed to load places: 403 (API key/permissions issue). '
+          'Enable Places API (New), attach billing, and verify key restrictions.',
+        );
+      }
+
       throw Exception('Failed to load places: ${response.statusCode}');
     }
 
