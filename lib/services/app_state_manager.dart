@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/place.dart';
 import '../models/chat_message.dart';
 import 'unified_step_service.dart';
@@ -13,10 +14,14 @@ class AppStateManager {
   factory AppStateManager() => _instance;
   AppStateManager._internal();
 
+  // Keys for persistence
+  static const String _stepGoalKey = 'step_goal';
+
   // Services
   final UnifiedStepService _stepService = UnifiedStepService();
   final LocationService _locationService = LocationService();
   final PlacesService _placesService = PlacesService();
+  late SharedPreferences _prefs;
 
   // State
   bool _isInitialized = false;
@@ -52,6 +57,15 @@ class AppStateManager {
     }
 
     debugPrint('🚀 Initializing AppStateManager...');
+
+    // Initialize SharedPreferences
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      _stepGoal = _prefs.getInt(_stepGoalKey) ?? 10000;
+      debugPrint('✅ SharedPreferences initialized. Loaded goal: $_stepGoal');
+    } catch (e) {
+      debugPrint('⚠️ SharedPreferences initialization failed: $e');
+    }
 
     // Initialize step service
     try {
@@ -136,11 +150,19 @@ class AppStateManager {
   }
 
   /// Set step goal
-  void setStepGoal(int goal) {
+  Future<void> setStepGoal(int goal) async {
     if (goal > 0) {
       _stepGoal = goal;
       _stepGoalController.add(_stepGoal);
       debugPrint('🎯 Step goal updated to: $goal');
+
+      // Persist goal
+      try {
+        await _prefs.setInt(_stepGoalKey, goal);
+        debugPrint('💾 Step goal persisted: $goal');
+      } catch (e) {
+        debugPrint('⚠️ Failed to persist step goal: $e');
+      }
     }
   }
 

@@ -104,9 +104,9 @@ class _ChatScreenState extends State<ChatScreen> {
             days: 7,
           ) ??
           0;
-      
+
       //hardcoded average for testing
-      average=100000;
+      average = 100000;
       if (!mounted) return;
 
       _currentWeekSteps = average;
@@ -365,10 +365,14 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (goalAchieved && _confidenceLevel != null) {
-        final newGoal = StepGoalCalculator.calculateNewGoal(_weeklyGoal!, _confidenceLevel!);
+        final newGoal = StepGoalCalculator.calculateNewGoal(
+          _weeklyGoal!,
+          _confidenceLevel!,
+        );
         _appState.addChatMessage(
           ChatMessage(
-            text: 'A tua nova meta de passos foi atualizada para $newGoal passos/dia.',
+            text:
+                'A tua nova meta de passos foi atualizada para $newGoal passos/dia.',
             isUser: false,
             timestamp: DateTime.now(),
           ),
