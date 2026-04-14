@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../utils/step_goal_calculator.dart';
 
 class TestCase {
   final String name;
@@ -86,7 +87,10 @@ class TestCase {
     List<String> additionalExpectedKeywords = const [],
     List<String> mustNotContain = const [],
   }) {
-    final expectedNewGoal = _calculateNewGoal(weeklyGoal, confidence);
+    final expectedNewGoal = StepGoalCalculator.calculateNewGoal(
+      weeklyGoal,
+      confidence,
+    );
 
     return TestCase(
       name: name,
@@ -154,11 +158,6 @@ class TestCase {
       mustNotContain: mustNotContain,
       mustCalculate: false,
     );
-  }
-
-  static int _calculateNewGoal(int weeklyGoal, int confidence) {
-    final rawGoal = weeklyGoal * (1 + confidence / 100);
-    return (rawGoal / 10).round() * 10;
   }
 
   static List<TestCase> getDefaultCases({int? seed}) {

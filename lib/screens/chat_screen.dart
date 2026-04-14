@@ -5,6 +5,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:health_test_app/services/ai_llama_service.dart';
 import 'package:health_test_app/services/app_state_manager.dart';
 import 'package:health_test_app/services/unified_step_service.dart';
+import 'package:health_test_app/utils/step_goal_calculator.dart';
 import '../theme/app_theme.dart';
 import '../models/chat_message.dart';
 
@@ -98,11 +99,14 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       );
 
-      final average =
+      var average =
           await _appState.stepService.getAverageDailyStepsFromHealthConnect(
             days: 7,
           ) ??
           0;
+      
+      //hardcoded average for testing
+      average=100000;
       if (!mounted) return;
 
       _currentWeekSteps = average;
@@ -293,6 +297,13 @@ class _ChatScreenState extends State<ChatScreen> {
           );
           return;
         }
+
+        final newGoal = StepGoalCalculator.calculateNewGoal(
+          _weeklyGoal!,
+          confidence,
+        );
+        _appState.setStepGoal(newGoal);
+
         setState(() {
           _confidenceLevel = confidence;
           _questionnaireState = QuestionnaireState.completed;
@@ -352,6 +363,17 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         },
       );
+
+      if (goalAchieved && _confidenceLevel != null) {
+        final newGoal = StepGoalCalculator.calculateNewGoal(_weeklyGoal!, _confidenceLevel!);
+        _appState.addChatMessage(
+          ChatMessage(
+            text: 'A tua nova meta de passos foi atualizada para $newGoal passos/dia.',
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        );
+      }
 
       _appState.setGeneratingResponse(false);
     } catch (e) {
