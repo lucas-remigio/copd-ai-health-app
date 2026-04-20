@@ -105,8 +105,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ) ??
           0;
 
-      //hardcoded average for testing
-      average = 100000;
       if (!mounted) return;
 
       _currentWeekSteps = average;
