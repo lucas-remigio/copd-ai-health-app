@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:health_test_app/models/ai_model.dart';
-import 'package:health_test_app/models/place.dart';
-import 'package:health_test_app/services/performance_metrics_service.dart';
+import 'package:copd_ai_health_app/models/ai_model.dart';
+import 'package:copd_ai_health_app/models/place.dart';
+import 'package:copd_ai_health_app/services/performance_metrics_service.dart';
 import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;

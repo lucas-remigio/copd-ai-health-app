@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:health_test_app/screens/loading_screen.dart';
+import 'package:copd_ai_health_app/screens/loading_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {

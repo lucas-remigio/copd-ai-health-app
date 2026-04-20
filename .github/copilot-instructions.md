@@ -41,7 +41,7 @@
 - `lib/screens/loading_screen.dart`
 - `lib/screens/steps_screen.dart`
 - `lib/screens/places_screen.dart`
-- `android/app/src/main/kotlin/com/example/health_test_app/MainActivity.kt`
+- `android/app/src/main/kotlin/com/example/copd_ai_health_app/MainActivity.kt`
 
 ## Collaboration Style for Agents
 

@@ -28,14 +28,12 @@
 #### **Interface em 3 Tabs**
 
 1. **Passos/Atividade**
-
    - Contagem automática de passos (Android HealthConnect)
    - Definição de metas personalizadas
    - Visualização de progresso diário
    - Método de transporte atual (caminhada/corrida/bicicleta)
 
 2. **Locais Próximos**
-
    - Integração Google Maps API
    - Sugestões baseadas em localização
    - Distância em passos e duração estimada
@@ -267,7 +265,7 @@ Podes descansar lá antes de voltar. 💪"
 
 ### Open Source
 
-- Código disponível: `github.com/lucas-remigio/health_test_app`
+- Código disponível: `github.com/lucas-remigio/copd_ai_health_app`
 - Licença: MIT
 - Contribuições bem-vindas
 

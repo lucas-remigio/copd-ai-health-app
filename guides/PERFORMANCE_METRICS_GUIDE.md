@@ -117,7 +117,7 @@ Or add it as a settings option in your existing screens.
 
 1. Open Performance Metrics screen
 2. Tap menu (⋮) → "Export to CSV" or "Export to JSON"
-3. Files saved to: `/data/user/0/com.example.health_test_app/app_flutter/`
+3. Files saved to: `/data/user/0/com.example.copd_ai_health_app/app_flutter/`
 4. Use "Share" to send via email/cloud
 
 ### Via ADB (Direct access)
@@ -127,10 +127,10 @@ Or add it as a settings option in your existing screens.
 adb devices
 
 # Pull CSV file
-adb pull /sdcard/Android/data/com.example.health_test_app/files/performance_metrics*.csv .
+adb pull /sdcard/Android/data/com.example.copd_ai_health_app/files/performance_metrics*.csv .
 
 # Pull JSON file
-adb pull /sdcard/Android/data/com.example.health_test_app/files/performance_metrics*.json .
+adb pull /sdcard/Android/data/com.example.copd_ai_health_app/files/performance_metrics*.json .
 ```
 
 ### Programmatic Export

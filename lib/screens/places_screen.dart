@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/app_state_manager.dart';
+import 'package:copd_ai_health_app/services/ai_llama_service.dart';
+import 'package:copd_ai_health_app/services/app_state_manager.dart';
 import '../models/place.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_view.dart';

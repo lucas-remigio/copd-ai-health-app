@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/app_state_manager.dart';
-import 'package:health_test_app/services/unified_step_service.dart';
-import 'package:health_test_app/utils/step_goal_calculator.dart';
+import 'package:copd_ai_health_app/services/ai_llama_service.dart';
+import 'package:copd_ai_health_app/services/app_state_manager.dart';
+import 'package:copd_ai_health_app/services/unified_step_service.dart';
+import 'package:copd_ai_health_app/utils/step_goal_calculator.dart';
 import '../theme/app_theme.dart';
 import '../models/chat_message.dart';
 

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:health_test_app/services/health_service.dart';
-import 'package:health_test_app/services/pedometer_service.dart';
-import 'package:health_test_app/services/step_detector_service.dart';
+import 'package:copd_ai_health_app/services/health_service.dart';
+import 'package:copd_ai_health_app/services/pedometer_service.dart';
+import 'package:copd_ai_health_app/services/step_detector_service.dart';
 
 enum StepDetectionMethod { healthConnect, pedometer, accelerometer, none }
 

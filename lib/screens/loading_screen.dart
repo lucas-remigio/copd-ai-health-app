@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:health_test_app/services/ai_llama_service.dart';
-import 'package:health_test_app/services/app_state_manager.dart';
-import 'package:health_test_app/services/performance_metrics_service.dart';
+import 'package:copd_ai_health_app/services/ai_llama_service.dart';
+import 'package:copd_ai_health_app/services/app_state_manager.dart';
+import 'package:copd_ai_health_app/services/performance_metrics_service.dart';
 import 'home_screen.dart';
 
 class LoadingScreen extends StatefulWidget {

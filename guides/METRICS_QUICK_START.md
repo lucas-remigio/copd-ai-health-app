@@ -161,7 +161,7 @@ If battery metrics show 0%:
 Files are saved to app documents directory. Use ADB to pull:
 
 ```bash
-adb pull /sdcard/Android/data/com.example.health_test_app/files/ .
+adb pull /sdcard/Android/data/com.example.copd_ai_health_app/files/ .
 ```
 
 ### Metrics not appearing

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:health_test_app/services/ai_llama_service.dart';
+import 'package:copd_ai_health_app/services/ai_llama_service.dart';
 import 'steps_screen.dart';
 import 'places_screen.dart';
 import 'chat_screen.dart';
