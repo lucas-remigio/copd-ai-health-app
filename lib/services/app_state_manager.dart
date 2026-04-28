@@ -228,6 +228,18 @@ class AppStateManager {
     return difference.inDays >= 7;
   }
 
+  /// Reset the questionnaire date (for debug)
+  Future<void> resetQuestionnaire() async {
+    _lastQuestionnaireDate = null;
+    try {
+      await _prefs.remove(_lastQuestionnaireKey);
+      debugPrint('📅 Questionnaire reset');
+      _chatUpdateController.add(null);
+    } catch (e) {
+      debugPrint('⚠️ Failed to reset questionnaire date: $e');
+    }
+  }
+
   /// Get the date when the questionnaire will be available again
   DateTime getNextQuestionnaireDate() {
     if (_lastQuestionnaireDate == null) return DateTime.now();

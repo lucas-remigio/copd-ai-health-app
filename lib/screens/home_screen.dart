@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:copd_ai_health_app/services/ai_llama_service.dart';
@@ -151,6 +152,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+            if (kDebugMode) ...[
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'DEBUG',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.refresh, color: Colors.red),
+                title: const Text(
+                  'Reset Questionário',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _appState.resetQuestionnaire();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Questionário resetado!')),
+                    );
+                  }
+                },
+              ),
+            ],
           ],
         ),
       ),
