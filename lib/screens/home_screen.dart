@@ -181,6 +181,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.bar_chart, color: Colors.red),
+                title: const Text(
+                  'Mock Histórico',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _appState.mockWeeklyHistory();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Histórico preenchido com dados aleatórios!')),
+                  );
+                },
+              ),
             ],
           ],
         ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/place.dart';
@@ -244,6 +245,24 @@ class AppStateManager {
   DateTime getNextQuestionnaireDate() {
     if (_lastQuestionnaireDate == null) return DateTime.now();
     return _lastQuestionnaireDate!.add(const Duration(days: 7));
+  }
+
+  /// Populate weekly history with random data (for debug)
+  void mockWeeklyHistory() {
+    final Map<DateTime, int> mockHistory = {};
+    final random = math.Random();
+    final now = DateTime.now();
+    
+    for (int i = 0; i < 7; i++) {
+      final day = now.subtract(Duration(days: i));
+      final dayKey = DateTime(day.year, day.month, day.day);
+      // Random steps between 3000 and 12000
+      mockHistory[dayKey] = 3000 + random.nextInt(9000);
+    }
+    
+    _stepService.setDebugHistoryOverride(mockHistory);
+    // Notify UI
+    _chatUpdateController.add(null);
   }
 
   /// Dispose all resources

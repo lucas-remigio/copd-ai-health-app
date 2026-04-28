@@ -34,6 +34,7 @@ class UnifiedStepService {
   StepDetectionMethod _activeMethod = StepDetectionMethod.none;
   int _stepCount = 0;
   bool _isInitialized = false;
+  Map<DateTime, int>? _debugHistoryOverride;
 
   Stream<int> get stepCountStream => _stepController.stream;
   int get currentStepCount => _stepCount;
@@ -53,6 +54,7 @@ class UnifiedStepService {
 
   /// Returns daily steps for the last 7 days from Health Connect.
   Future<Map<DateTime, int>?> getDailyStepsLast7Days() async {
+    if (_debugHistoryOverride != null) return _debugHistoryOverride;
     if (_activeMethod != StepDetectionMethod.healthConnect) return null;
 
     try {
@@ -273,6 +275,13 @@ class UnifiedStepService {
     if (_activeMethod == StepDetectionMethod.accelerometer) {
       _stepDetector.startListening();
     }
+  }
+
+  /// Set mock history for debugging
+  void setDebugHistoryOverride(Map<DateTime, int>? history) {
+    _debugHistoryOverride = history;
+    // Trigger an empty event to notify listeners if needed, though this service 
+    // doesn't have a history stream yet.
   }
 
   void dispose() {
