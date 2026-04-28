@@ -202,222 +202,239 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           children: [
-            // Weekly Circles at the top
+            // Weekly Circles at the top (has its own horizontal padding)
             _buildWeeklyCircles(),
             const SizedBox(height: 32),
 
-            // Main circular progress indicator
-            SizedBox(
-              width: 280,
-              height: 280,
-              child: Stack(
-                alignment: Alignment.center,
+            // All other content with horizontal margin
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
                 children: [
-                  // Background circle
+                  // Main circular progress indicator
                   SizedBox(
                     width: 280,
                     height: 280,
-                    child: CircularProgressIndicator(
-                      value: 1.0,
-                      strokeWidth: 20,
-                      backgroundColor: AppTheme.surfaceVariant,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppTheme.surfaceVariant,
-                      ),
-                    ),
-                  ),
-                  // Progress circle
-                  SizedBox(
-                    width: 280,
-                    height: 280,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 20,
-                      backgroundColor: Colors.transparent,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        progress >= 1.0 ? AppTheme.success : AppTheme.primary,
-                      ),
-                    ),
-                  ),
-                  // Center content
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _stepCount.toString(),
-                        style: const TextStyle(
-                          fontSize: 56,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const Text(
-                        'passos',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${(progress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Goal card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        const Text(
-                          'Meta Diária',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.textSecondary,
+                        // Background circle
+                        SizedBox(
+                          width: 280,
+                          height: 280,
+                          child: CircularProgressIndicator(
+                            value: 1.0,
+                            strokeWidth: 20,
+                            backgroundColor: AppTheme.surfaceVariant,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppTheme.surfaceVariant,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$_stepGoal passos',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                        // Progress circle
+                        SizedBox(
+                          width: 280,
+                          height: 280,
+                          child: CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 20,
+                            backgroundColor: Colors.transparent,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              progress >= 1.0
+                                  ? AppTheme.success
+                                  : AppTheme.primary,
+                            ),
                           ),
+                        ),
+                        // Center content
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _stepCount.toString(),
+                              style: const TextStyle(
+                                fontSize: 56,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const Text(
+                              'passos',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${(progress * 100).toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.flag,
-                        color: AppTheme.primary,
-                        size: 28,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 32),
 
-            // Remaining steps card
-            if (remaining > 0)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  // Goal card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Passos em Falta',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.textSecondary,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Meta Diária',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$_stepGoal passos',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$remaining steps',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.flag,
+                              color: AppTheme.primary,
+                              size: 28,
                             ),
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accent.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.trending_up,
-                          color: AppTheme.accent,
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Card(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.success.withValues(alpha: 0.1),
-                        AppTheme.success.withValues(alpha: 0.05),
-                      ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.success,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.check_circle,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Text(
-                          'Meta Alcançada! 🎉',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.success,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-            // Detection method indicator
-            _buildMethodIndicator(),
+                  // Remaining steps card
+                  if (remaining > 0)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Passos em Falta',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$remaining steps',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.trending_up,
+                                color: AppTheme.accent,
+                                size: 28,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Card(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.success.withValues(alpha: 0.1),
+                              AppTheme.success.withValues(alpha: 0.05),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.success,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(
+                              child: Text(
+                                'Meta Alcançada! 🎉',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.success,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+
+                  // Detection method indicator
+                  _buildMethodIndicator(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Color _getStepColor(double progress) {
+    if (progress >= 1.0) return AppTheme.success;
+    if (progress >= 0.7) return AppTheme.primary;
+    if (progress >= 0.4) return Colors.orangeAccent;
+    return Colors.redAccent;
   }
 
   Widget _buildWeeklyCircles() {
@@ -426,66 +443,100 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
     }
 
     final entries = _weeklyHistory!.entries.toList();
-    entries.sort((a, b) => a.key.compareTo(b.key));
+    entries.sort((a, b) => a.key.compareTo(b.key)); // Chronological (Oldest -> Today)
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      reverse: true, // Start at Today (last child)
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: entries.map((entry) {
           final dayName = DateFormat('E', 'pt_PT').format(entry.key).substring(0, 1).toUpperCase();
+          final dateNum = DateFormat('dd').format(entry.key);
           final isToday = entry.key.day == DateTime.now().day;
-          final dayProgress = (entry.value / _stepGoal).clamp(0.0, 1.0);
+          final dayProgress = (entry.value / _stepGoal).clamp(0.01, 1.0);
           final goalReached = entry.value >= _stepGoal;
+          final circleColor = _getStepColor(dayProgress);
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              children: [
-                Text(
-                  dayName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                    color: isToday ? AppTheme.primary : AppTheme.textSecondary,
-                  ),
+          return GestureDetector(
+            onTap: () {
+              final fullDate = DateFormat('EEEE, d MMMM', 'pt_PT').format(entry.key);
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$fullDate: ${entry.value} passos'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: 1.0,
-                        strokeWidth: 4,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppTheme.surfaceVariant,
-                        ),
-                      ),
-                      CircularProgressIndicator(
-                        value: dayProgress,
-                        strokeWidth: 4,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          goalReached ? AppTheme.success : AppTheme.primary,
-                        ),
-                      ),
-                      if (goalReached)
-                        const Icon(Icons.check, size: 16, color: AppTheme.success)
-                      else if (isToday)
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primary,
-                            shape: BoxShape.circle,
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                children: [
+                  Text(
+                    dayName,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      color: isToday ? AppTheme.primary : AppTheme.textTertiary,
+                    ),
+                  ),
+                  Text(
+                    dateNum,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      color: isToday ? AppTheme.primary : AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: 1.0,
+                          strokeWidth: 4.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.surfaceVariant.withValues(alpha: 0.5),
                           ),
                         ),
-                    ],
+                        CircularProgressIndicator(
+                          value: dayProgress,
+                          strokeWidth: 4.5,
+                          strokeCap: StrokeCap.round,
+                          valueColor: AlwaysStoppedAnimation<Color>(circleColor),
+                        ),
+                        if (goalReached)
+                          Icon(Icons.check, size: 18, color: circleColor)
+                        else if (isToday)
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: circleColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    entry.value > 0 
+                      ? '${(entry.value / 1000).toStringAsFixed(1)}k'
+                      : '0',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isToday ? AppTheme.textPrimary : AppTheme.textTertiary,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }).toList(),
