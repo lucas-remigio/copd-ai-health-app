@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/chat_message.dart';
 import '../services/chat_history_service.dart';
 import '../theme/app_theme.dart';
@@ -42,6 +44,39 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadLog,
+            tooltip: 'Atualizar',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'export_json') {
+                _exportJSON();
+              } else if (value == 'clear') {
+                _confirmClear();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export_json',
+                child: Row(
+                  children: [
+                    Icon(Icons.code, size: 20),
+                    SizedBox(width: 8),
+                    Text('Exportar JSONL'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'clear',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 20, color: Colors.red.shade700),
+                    const SizedBox(width: 8),
+                    Text('Limpar Tudo', style: TextStyle(color: Colors.red.shade700)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -57,6 +92,13 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
                     return _buildInteractionGroup(interaction);
                   },
                 ),
+      floatingActionButton: _interactions.isEmpty 
+          ? null 
+          : FloatingActionButton.extended(
+              onPressed: _shareFullHistory,
+              icon: const Icon(Icons.share),
+              label: const Text('Partilhar Tudo'),
+            ),
     );
   }
 
@@ -109,13 +151,27 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Interação IA',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
                 Text(
-                  dateStr,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  'Interação IA • $dateStr',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 16),
+                      onPressed: () => _copyInteraction(input, output, dateStr),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                      tooltip: 'Copiar',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share, size: 16),
+                      onPressed: () => _shareInteraction(input, output, dateStr),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                      tooltip: 'Partilhar',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -183,5 +239,102 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
         ],
       ),
     );
+  }
+
+  String _formatInteraction(ChatMessage input, ChatMessage output, String date) {
+    String text = '🤖 INTERAÇÃO IA ($date)\n';
+    text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+    text += '📥 INPUT:\n${input.text}\n\n';
+    if (input.metadata != null) {
+      text += '📝 CONTEXTO:\n${input.metadata!.entries.map((e) => "${e.key}: ${e.value}").join("\n")}\n\n';
+    }
+    text += '📤 OUTPUT:\n${output.text}\n';
+    text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+    return text;
+  }
+
+  void _copyInteraction(ChatMessage input, ChatMessage output, String date) {
+    final text = _formatInteraction(input, output, date);
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Interação copiada para a área de transferência')),
+    );
+  }
+
+  void _shareInteraction(ChatMessage input, ChatMessage output, String date) {
+    final text = _formatInteraction(input, output, date);
+    SharePlus.instance.share(ShareParams(text: text));
+  }
+
+  Future<void> _shareFullHistory() async {
+    final logFile = await _historyService.getInteractionLogFile();
+    if (await logFile.exists()) {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(logFile.path)],
+          text: 'Histórico de Interações COPD AI Health',
+        ),
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhum log encontrado para partilhar')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportJSON() async {
+    final logFile = await _historyService.getInteractionLogFile();
+    if (await logFile.exists()) {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(logFile.path)],
+          subject: 'AI_Interactions_Export.jsonl',
+        ),
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhum log para exportar')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmClear() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Limpar Histórico?'),
+        content: const Text(
+          'Isto irá apagar permanentemente o log de interações com a IA. Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Limpar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final logFile = await _historyService.getInteractionLogFile();
+      if (await logFile.exists()) {
+        await logFile.delete();
+      }
+      _loadLog();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Histórico de interações limpo')),
+        );
+      }
+    }
   }
 }
