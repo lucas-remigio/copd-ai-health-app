@@ -6,6 +6,7 @@ import '../models/chat_message.dart';
 import 'unified_step_service.dart';
 import 'location_service.dart';
 import 'places_service.dart';
+import 'chat_history_service.dart';
 import 'package:flutter/foundation.dart';
 
 /// Singleton class to manage global app state
@@ -21,6 +22,7 @@ class AppStateManager {
   final UnifiedStepService _stepService = UnifiedStepService();
   final LocationService _locationService = LocationService();
   final PlacesService _placesService = PlacesService();
+  final ChatHistoryService _historyService = ChatHistoryService();
   late SharedPreferences _prefs;
 
   // State
@@ -65,6 +67,20 @@ class AppStateManager {
       debugPrint('✅ SharedPreferences initialized. Loaded goal: $_stepGoal');
     } catch (e) {
       debugPrint('⚠️ SharedPreferences initialization failed: $e');
+    }
+
+    // Load chat history
+    try {
+      final history = await _historyService.loadHistory();
+      if (history.isNotEmpty) {
+        _chatHistory.addAll(history);
+        debugPrint('✅ Loaded ${history.length} messages from local storage');
+      } else {
+        clearChatHistory(); // Set default welcome message
+      }
+    } catch (e) {
+      debugPrint('⚠️ Chat history loading failed: $e');
+      clearChatHistory();
     }
 
     // Initialize step service
@@ -119,6 +135,7 @@ class AppStateManager {
   void addChatMessage(ChatMessage message) {
     _chatHistory.add(message);
     _chatUpdateController.add(null);
+    _historyService.saveHistory(_chatHistory);
   }
 
   /// Clear chat history (keeps welcome message)
@@ -133,6 +150,7 @@ class AppStateManager {
       ),
     );
     _chatUpdateController.add(null);
+    _historyService.saveHistory(_chatHistory);
   }
 
   /// Update a chat message at specific index
@@ -143,9 +161,23 @@ class AppStateManager {
     }
   }
 
+  /// Finalize message and save
+  void finalizeMessageUpdate() {
+    _historyService.saveHistory(_chatHistory);
+    _chatUpdateController.add(null);
+  }
+
+  /// Log a real AI interaction
+  void logAIInteraction(ChatMessage input, ChatMessage output) {
+    _historyService.logInteraction(input: input, output: output);
+  }
+
   /// Set generating response state
   void setGeneratingResponse(bool isGenerating) {
     _isGeneratingResponse = isGenerating;
+    if (!isGenerating) {
+      finalizeMessageUpdate();
+    }
     _chatUpdateController.add(null);
   }
 

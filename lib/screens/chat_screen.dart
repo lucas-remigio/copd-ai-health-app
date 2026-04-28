@@ -19,8 +19,9 @@ enum QuestionnaireState {
 
 class ChatScreen extends StatefulWidget {
   final AILlamaService aiService;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
 
-  const ChatScreen({super.key, required this.aiService});
+  const ChatScreen({super.key, required this.aiService, this.scaffoldKey});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -203,12 +204,24 @@ class _ChatScreenState extends State<ChatScreen> {
               text: _currentStreamingText,
               isUser: false,
               timestamp: _appState.chatHistory[aiMessageIndex].timestamp,
+              metadata: {
+                'steps': _stepCount,
+                'goal': _appState.stepGoal,
+                'nearbyPlacesCount': _appState.nearbyPlaces.length,
+                'model': widget.aiService.currentModel.name,
+              },
             ),
           );
         },
       );
 
       _appState.setGeneratingResponse(false);
+
+      // Log the real interaction
+      _appState.logAIInteraction(
+        userMessage,
+        _appState.chatHistory[aiMessageIndex],
+      );
     } catch (e) {
       _appState.addChatMessage(
         ChatMessage(
@@ -357,9 +370,25 @@ class _ChatScreenState extends State<ChatScreen> {
               text: _currentStreamingText,
               isUser: false,
               timestamp: _appState.chatHistory[aiMessageIndex].timestamp,
+              metadata: {
+                'type': 'questionnaire_completion',
+                'model': widget.aiService.currentModel.name,
+              },
             ),
           );
         },
+      );
+
+      _appState.setGeneratingResponse(false);
+
+      // Log the real interaction
+      _appState.logAIInteraction(
+        ChatMessage(
+          text: contextMessage,
+          isUser: true,
+          timestamp: DateTime.now(),
+        ),
+        _appState.chatHistory[aiMessageIndex],
       );
 
       if (goalAchieved && _confidenceLevel != null) {
@@ -376,8 +405,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       }
-
-      _appState.setGeneratingResponse(false);
     } catch (e) {
       _appState.addChatMessage(
         ChatMessage(
@@ -406,6 +433,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: widget.scaffoldKey != null
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => widget.scaffoldKey!.currentState?.openDrawer(),
+              )
+            : null,
         title: const Text('Chat de Saúde'),
         actions: [
           if (_appState.chatHistory.length > 1)

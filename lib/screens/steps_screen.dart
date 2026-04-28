@@ -12,8 +12,9 @@ import 'dart:math' as math;
 
 class StepsScreen extends StatefulWidget {
   final AILlamaService aiService;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
 
-  const StepsScreen({super.key, required this.aiService});
+  const StepsScreen({super.key, required this.aiService, this.scaffoldKey});
 
   @override
   State<StepsScreen> createState() => _StepsScreenState();
@@ -149,6 +150,12 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
+        leading: widget.scaffoldKey != null
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => widget.scaffoldKey!.currentState?.openDrawer(),
+              )
+            : null,
         title: const Text('Passos Diários'),
         actions: [
           IconButton(
@@ -164,21 +171,6 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                 await _appState.stepService.addSteps(1000);
               } else if (value == 'reset') {
                 await _appState.stepService.resetSteps();
-              } else if (value == 'metrics') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PerformanceMetricsScreen(),
-                  ),
-                );
-              } else if (value == 'test') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AITestScreen(aiService: widget.aiService),
-                  ),
-                );
               }
             },
             itemBuilder: (context) => [
@@ -193,27 +185,6 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
               const PopupMenuItem(
                 value: 'reset',
                 child: Text('Reiniciar passos'),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'metrics',
-                child: Row(
-                  children: [
-                    Icon(Icons.analytics_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Performance Metrics'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'test',
-                child: Row(
-                  children: [
-                    Icon(Icons.science_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('AI Model Testing'),
-                  ],
-                ),
               ),
             ],
           ),

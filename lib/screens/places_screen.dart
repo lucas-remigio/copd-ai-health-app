@@ -10,8 +10,9 @@ import '../utils/map_utils.dart';
 
 class PlacesScreen extends StatefulWidget {
   final AILlamaService aiService;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
 
-  const PlacesScreen({super.key, required this.aiService});
+  const PlacesScreen({super.key, required this.aiService, this.scaffoldKey});
 
   @override
   State<PlacesScreen> createState() => _PlacesScreenState();
@@ -99,6 +100,12 @@ class _PlacesScreenState extends State<PlacesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: widget.scaffoldKey != null
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => widget.scaffoldKey!.currentState?.openDrawer(),
+              )
+            : null,
         title: const Text('Locais Próximos'),
         actions: [
           if (_hasSearched)
