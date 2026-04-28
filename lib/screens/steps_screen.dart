@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:copd_ai_health_app/services/ai_llama_service.dart';
 import 'package:copd_ai_health_app/services/app_state_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -25,6 +26,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   int _stepCount = 0;
   int _stepGoal = 10000;
   String? _errorMessage;
+  Map<DateTime, int>? _weeklyHistory;
 
   @override
   void initState() {
@@ -85,12 +87,16 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
       _stepGoal = _appState.stepGoal;
     });
 
+    _loadHistory();
+
     await _stepCountSubscription?.cancel();
     _stepCountSubscription = _appState.stepService.stepCountStream.listen((
       steps,
     ) {
       if (!mounted) return;
       setState(() => _stepCount = steps);
+      // Refresh history occasionally
+      if (steps % 100 == 0) _loadHistory();
     }, onError: (error) => debugPrint('Step detection error: $error'));
 
     await _stepGoalSubscription?.cancel();
@@ -98,6 +104,13 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => _stepGoal = goal);
     });
+  }
+
+  Future<void> _loadHistory() async {
+    final history = await _appState.stepService.getDailyStepsLast7Days();
+    if (mounted) {
+      setState(() => _weeklyHistory = history);
+    }
   }
 
   void _showGoalDialog() {
@@ -189,9 +202,13 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // Weekly Circles at the top
+            _buildWeeklyCircles(),
+            const SizedBox(height: 32),
+
             // Main circular progress indicator
             SizedBox(
               width: 280,
@@ -399,6 +416,79 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
             _buildMethodIndicator(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyCircles() {
+    if (_weeklyHistory == null || _weeklyHistory!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final entries = _weeklyHistory!.entries.toList();
+    entries.sort((a, b) => a.key.compareTo(b.key));
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: entries.map((entry) {
+          final dayName = DateFormat('E', 'pt_PT').format(entry.key).substring(0, 1).toUpperCase();
+          final isToday = entry.key.day == DateTime.now().day;
+          final dayProgress = (entry.value / _stepGoal).clamp(0.0, 1.0);
+          final goalReached = entry.value >= _stepGoal;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              children: [
+                Text(
+                  dayName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                    color: isToday ? AppTheme.primary : AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: 1.0,
+                        strokeWidth: 4,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.surfaceVariant,
+                        ),
+                      ),
+                      CircularProgressIndicator(
+                        value: dayProgress,
+                        strokeWidth: 4,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          goalReached ? AppTheme.success : AppTheme.primary,
+                        ),
+                      ),
+                      if (goalReached)
+                        const Icon(Icons.check, size: 16, color: AppTheme.success)
+                      else if (isToday)
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }

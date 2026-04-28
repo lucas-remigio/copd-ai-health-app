@@ -51,6 +51,18 @@ class UnifiedStepService {
     }
   }
 
+  /// Returns daily steps for the last 7 days from Health Connect.
+  Future<Map<DateTime, int>?> getDailyStepsLast7Days() async {
+    if (_activeMethod != StepDetectionMethod.healthConnect) return null;
+
+    try {
+      return await _healthService.getDailyStepsLast7Days();
+    } catch (e) {
+      debugPrint('❌ Failed to fetch Health Connect 7-day history: $e');
+      return null;
+    }
+  }
+
   // Single method to get all UI info
   StepMethodInfo get methodInfo {
     const methodData = {

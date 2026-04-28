@@ -174,6 +174,52 @@ class HealthService {
     }
   }
 
+  /// Get daily steps for the last 7 days (including today)
+  Future<Map<DateTime, int>> getDailyStepsLast7Days() async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+
+    debugPrint('📊 Fetching daily steps from $start to $now');
+
+    try {
+      final healthData = await _health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: now,
+        types: [HealthDataType.STEPS],
+      );
+
+      final Map<DateTime, int> dayTotals = {};
+      
+      // Initialize with 0 for all 7 days
+      for (int i = 0; i < 7; i++) {
+        final day = start.add(Duration(days: i));
+        final dayKey = DateTime(day.year, day.month, day.day);
+        dayTotals[dayKey] = 0;
+      }
+
+      for (final data in healthData) {
+        if (data.type != HealthDataType.STEPS) continue;
+
+        final dayKey = DateTime(
+          data.dateFrom.year,
+          data.dateFrom.month,
+          data.dateFrom.day,
+        );
+        
+        if (dayTotals.containsKey(dayKey)) {
+          final value = _extractStepsValue(data.value);
+          dayTotals[dayKey] = dayTotals[dayKey]! + value;
+        }
+      }
+
+      debugPrint('✅ Fetched 7-day history: ${dayTotals.length} days recorded');
+      return dayTotals;
+    } catch (e) {
+      debugPrint('❌ Error fetching 7-day history: $e');
+      return {};
+    }
+  }
+
   /// Stream step updates (polls every 10 seconds)
   Stream<int> get stepCountStream async* {
     while (true) {
