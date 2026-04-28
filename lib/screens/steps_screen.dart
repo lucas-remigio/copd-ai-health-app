@@ -159,6 +159,12 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
     final progress = (_stepCount / _stepGoal).clamp(0.0, 1.0);
     final remaining = math.max(0, _stepGoal - _stepCount);
 
+    int? averageSteps;
+    if (_weeklyHistory != null && _weeklyHistory!.isNotEmpty) {
+      final total = _weeklyHistory!.values.fold(0, (sum, val) => sum + val);
+      averageSteps = (total / _weeklyHistory!.length).round();
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: widget.scaffoldKey != null
@@ -283,6 +289,53 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 32),
+
+                  // Weekly Average card
+                  if (averageSteps != null)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Média Diária (7 dias)',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$averageSteps passos',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.assessment_outlined,
+                                color: Colors.blue,
+                                size: 28,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (averageSteps != null) const SizedBox(height: 16),
 
                   // Goal card
                   Card(
