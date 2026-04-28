@@ -17,6 +17,7 @@ class AppStateManager {
 
   // Keys for persistence
   static const String _stepGoalKey = 'step_goal';
+  static const String _lastQuestionnaireKey = 'last_questionnaire_date';
 
   // Services
   final UnifiedStepService _stepService = UnifiedStepService();
@@ -31,6 +32,7 @@ class AppStateManager {
   List<Place> _nearbyPlaces = [];
   final List<ChatMessage> _chatHistory = [];
   int _stepGoal = 10000;
+  DateTime? _lastQuestionnaireDate;
 
   // Chat streaming state
   bool _isGeneratingResponse = false;
@@ -50,6 +52,7 @@ class AppStateManager {
   Stream<void> get chatUpdateStream => _chatUpdateController.stream;
   int get stepGoal => _stepGoal;
   Stream<int> get stepGoalStream => _stepGoalController.stream;
+  DateTime? get lastQuestionnaireDate => _lastQuestionnaireDate;
 
   /// Initialize all app services
   Future<void> initialize() async {
@@ -64,6 +67,12 @@ class AppStateManager {
     try {
       _prefs = await SharedPreferences.getInstance();
       _stepGoal = _prefs.getInt(_stepGoalKey) ?? 10000;
+      
+      final lastDateStr = _prefs.getString(_lastQuestionnaireKey);
+      if (lastDateStr != null) {
+        _lastQuestionnaireDate = DateTime.tryParse(lastDateStr);
+      }
+      
       debugPrint('✅ SharedPreferences initialized. Loaded goal: $_stepGoal');
     } catch (e) {
       debugPrint('⚠️ SharedPreferences initialization failed: $e');
@@ -196,6 +205,33 @@ class AppStateManager {
         debugPrint('⚠️ Failed to persist step goal: $e');
       }
     }
+  }
+
+  /// Mark questionnaire as completed today
+  Future<void> markQuestionnaireCompleted() async {
+    _lastQuestionnaireDate = DateTime.now();
+    try {
+      await _prefs.setString(_lastQuestionnaireKey, _lastQuestionnaireDate!.toIso8601String());
+      debugPrint('📅 Questionnaire completion date saved: $_lastQuestionnaireDate');
+      // Trigger a UI update to hide the chat tab
+      _chatUpdateController.add(null);
+    } catch (e) {
+      debugPrint('⚠️ Failed to save questionnaire date: $e');
+    }
+  }
+
+  /// Check if questionnaire is due (every 7 days)
+  bool isQuestionnaireDue() {
+    if (_lastQuestionnaireDate == null) return true;
+    final difference = DateTime.now().difference(_lastQuestionnaireDate!);
+    // Using 7 days as the threshold
+    return difference.inDays >= 7;
+  }
+
+  /// Get the date when the questionnaire will be available again
+  DateTime getNextQuestionnaireDate() {
+    if (_lastQuestionnaireDate == null) return DateTime.now();
+    return _lastQuestionnaireDate!.add(const Duration(days: 7));
   }
 
   /// Dispose all resources

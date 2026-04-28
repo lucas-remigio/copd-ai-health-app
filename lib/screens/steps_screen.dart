@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:copd_ai_health_app/services/ai_llama_service.dart';
 import 'package:copd_ai_health_app/services/app_state_manager.dart';
-import 'package:copd_ai_health_app/screens/performance_metrics_screen.dart';
-import 'package:copd_ai_health_app/screens/ai_test_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_view.dart';

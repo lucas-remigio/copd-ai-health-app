@@ -15,7 +15,6 @@ class _LoadingScreenState extends State<LoadingScreen> {
   final AILlamaService _aiService = AILlamaService();
   final AppStateManager _appState = AppStateManager();
   String _status = 'A inicializar...';
-  String _streamingTestResponse = '';
   double _progress = 0.0;
   bool _hasError = false;
 
@@ -50,13 +49,6 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       await _appState.initialize();
 
-      _safeSetState(() {
-        _status = 'Pronto!';
-        _progress = 1.0;
-      });
-
-      await Future.delayed(const Duration(seconds: 1));
-
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -75,7 +67,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
   Future<void> _initializeAI() async {
     try {
       _safeSetState(() {
-        _status = 'A descarregar modelo de IA...';
+        _status = 'A carregar modelo de IA...';
         _progress = 0.0;
       });
 
@@ -84,33 +76,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _safeSetState(() {
           _progress = progress;
           _status =
-              'A descarregar modelo de IA... ${(progress * 100).toStringAsFixed(1)}%';
+              'A carregar modelo de IA... ${(progress * 100).toStringAsFixed(1)}%';
         });
       };
 
       await _aiService.initialize();
-
-      _safeSetState(() {
-        _status = 'A testar modelo de IA...';
-        _progress = 1.0;
-        _streamingTestResponse = '';
-      });
-
-      final testResponse = await _aiService.getTestResponse(
-        onToken: (token) {
-          _safeSetState(() {
-            _streamingTestResponse += token;
-            _status =
-                'A testar modelo de IA...\nStreaming: $_streamingTestResponse';
-          });
-        },
-      );
-
-      _safeSetState(() {
-        _status = 'Resposta IA:\n$testResponse';
-      });
-
-      await Future.delayed(const Duration(seconds: 2));
     } catch (e) {
       debugPrint('AI initialization error: $e');
       rethrow;

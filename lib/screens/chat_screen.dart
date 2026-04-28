@@ -405,6 +405,10 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       }
+
+      // Mark completed so it only appears once a week
+      await _appState.markQuestionnaireCompleted();
+      
     } catch (e) {
       _appState.addChatMessage(
         ChatMessage(
