@@ -400,6 +400,8 @@ class AILlamaService {
     if (!_isInitialized) await initialize();
     if (_controller == null) throw Exception('Model not loaded');
 
+    await _controller!.clearContext();
+
     debugPrint('💬 Generating response to: $userMessage');
 
     // Format for Gemma chat template
@@ -427,7 +429,14 @@ $userMessage<end_of_turn>
       bool firstToken = true;
 
       subscription = _controller!
-          .generate(prompt: prompt, maxTokens: maxTokens, temperature: 0.7)
+          .generate(
+            prompt: prompt,
+            maxTokens: maxTokens,
+            temperature: 0.0,
+            topK:
+                1, // <-- only the argmax token is ever considered = true greedy
+            seed: 0, // optional: full reproducibility
+          )
           .listen(
             (token) {
               if (firstToken) {
