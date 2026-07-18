@@ -91,6 +91,7 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
                 children: [
                   _buildSummaryCard(metrics.length, stats),
                   const SizedBox(height: 16),
+                  _buildAccuracyCard(),
                   _buildLatencyStats(stats),
                   const SizedBox(height: 16),
                   _buildBatteryStats(stats),
@@ -152,6 +153,144 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
                 '${stats['ttft_avg_ms']?.toStringAsFixed(0) ?? '0'}ms',
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccuracyCard() {
+    final lastRun = _metricsService.lastTestRun;
+    if (lastRun == null) return const SizedBox.shrink();
+
+    final cumulative = _metricsService.cumulativeAccuracy;
+
+    return Column(
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🎯 Accuracy',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+
+                // Latest run
+                Text(
+                  'Latest Run • ${_formatTime(lastRun.timestamp)}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildAccuracyChips(
+                  total: lastRun.total,
+                  passed: lastRun.passed,
+                  failed: lastRun.failed,
+                  passRate: lastRun.passRate,
+                ),
+                _buildStatRow(
+                  'Avg Score',
+                  '${lastRun.averageScore.toStringAsFixed(1)}%',
+                ),
+
+                const Divider(height: 24),
+
+                // Cumulative all-time
+                Text(
+                  'All-Time • ${cumulative['runs']} run(s)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildAccuracyChips(
+                  total: cumulative['total'] as int,
+                  passed: cumulative['passed'] as int,
+                  failed: cumulative['failed'] as int,
+                  passRate: (cumulative['pass_rate'] as num).toDouble(),
+                ),
+                _buildStatRow(
+                  'Avg Score',
+                  '${(cumulative['average_score'] as num).toStringAsFixed(1)}%',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildAccuracyChips({
+    required int total,
+    required int passed,
+    required int failed,
+    required double passRate,
+  }) {
+    Color rateColor;
+    if (passRate >= 80) {
+      rateColor = Colors.green;
+    } else if (passRate >= 60) {
+      rateColor = Colors.orange;
+    } else {
+      rateColor = Colors.red;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          _buildAccuracyChip('Total', '$total', Colors.blue),
+          const SizedBox(width: 8),
+          _buildAccuracyChip('Passed', '$passed', Colors.green),
+          const SizedBox(width: 8),
+          _buildAccuracyChip('Failed', '$failed', Colors.red),
+          const SizedBox(width: 8),
+          _buildAccuracyChip(
+            'Accuracy',
+            '${passRate.toStringAsFixed(1)}%',
+            rateColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccuracyChip(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
           ],
         ),
       ),
@@ -438,6 +577,15 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
 
   void _shareStatistics() {
     final stats = _metricsService.getStatistics();
+    final lastRun = _metricsService.lastTestRun;
+    final cumulative = _metricsService.cumulativeAccuracy;
+    final accuracySection = lastRun == null
+        ? ''
+        : '''
+🎯 ACCURACY:
+• Latest Run: ${lastRun.passed}/${lastRun.total} passed (${lastRun.passRate.toStringAsFixed(1)}%)
+• All-Time (${cumulative['runs']} runs): ${cumulative['passed']}/${cumulative['total']} passed (${(cumulative['pass_rate'] as num).toStringAsFixed(1)}%)
+''';
     final summary =
         '''
 Performance Metrics Summary
@@ -445,6 +593,7 @@ Performance Metrics Summary
 
 Model: ${stats['model']}
 Total Inferences: ${stats['total_inferences']}
+$accuracySection
 
 ⚡ LATENCY:
 • Avg TTFT: ${stats['ttft_avg_ms']?.toStringAsFixed(0)}ms

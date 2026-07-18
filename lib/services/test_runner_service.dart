@@ -43,6 +43,22 @@ class TestRunnerService {
         // Small delay between tests
         await Future.delayed(const Duration(milliseconds: 500));
       }
+
+      // Persist this run's pass/fail summary so the metrics screen can show
+      // both the latest run and the all-time cumulative accuracy.
+      if (_results.isNotEmpty) {
+        final summary = getSummary();
+        await _aiService.metricsService.recordTestRun(
+          TestRunSummary(
+            timestamp: DateTime.now(),
+            modelName: _aiService.currentModel.name,
+            total: summary['total'] as int,
+            passed: summary['passed'] as int,
+            failed: summary['failed'] as int,
+            averageScore: (summary['average_score'] as num).toDouble(),
+          ),
+        );
+      }
     } finally {
       _isRunning = false;
     }
@@ -75,6 +91,7 @@ class TestRunnerService {
       score: validation['score'] as int,
       maxScore: validation['max_score'] as int,
       issues: validation['issues'] as List<String>,
+      notes: validation['notes'] as List<String>,
       metrics: inferenceMetrics?.toJson(),
     );
   }
@@ -86,8 +103,10 @@ class TestRunnerService {
       'score': 0,
       'max_score': 0,
       'issues': <String>[],
+      'notes': <String>[],
     };
 
+    final notes = validation['notes'] as List<String>;
     final responseLower = response.toLowerCase();
 
     // 1. Check expected keywords (each worth 1 point)
@@ -99,6 +118,7 @@ class TestRunnerService {
           responseLower,
           keyword,
           testCase,
+          notes,
         )) {
           validation['score'] = (validation['score'] as int) + 1;
         } else {
@@ -151,6 +171,12 @@ class TestRunnerService {
           final actual = int.tryParse(match.group(1) ?? '');
           if (actual != null && (actual - expected).abs() <= 10) {
             validation['score'] = (validation['score'] as int) + 3;
+            if (actual != expected) {
+              notes.add(
+                '≈ Nova meta close match: expected $expected, got $actual '
+                '(Δ${(actual - expected).abs()}, within ±10)',
+              );
+            }
           } else {
             validation['passed'] = false;
             (validation['issues'] as List<String>).add(
@@ -200,6 +226,7 @@ class TestRunnerService {
     String responseLower,
     String keyword,
     TestCase testCase,
+    List<String> notes,
   ) {
     final keywordLower = keyword.toLowerCase();
 
@@ -238,16 +265,32 @@ class TestRunnerService {
               );
         return responseLower.contains(root);
       }
-    } else if (RegExp(r'^\d+4').hasMatch(keywordLower) ||
-        RegExp(r'^\d+$').hasMatch(keywordLower)) {
+    } else if (RegExp(r'^\d+$').hasMatch(keywordLower)) {
       final expected = int.tryParse(keywordLower);
       if (expected != null) {
         final responseNumbers = RegExp(r'\d+')
             .allMatches(response)
             .map((match) => int.tryParse(match.group(0) ?? ''))
-            .whereType<int>();
+            .whereType<int>()
+            .toList();
 
-        if (responseNumbers.any((number) => (number - expected).abs() <= 10)) {
+        // Exact match — no note needed.
+        if (responseNumbers.contains(expected)) {
+          return true;
+        }
+
+        // Within ±10 tolerance — count as a pass but flag it as close.
+        final withinTolerance = responseNumbers
+            .where((number) => (number - expected).abs() <= 10)
+            .toList();
+        if (withinTolerance.isNotEmpty) {
+          final closest = withinTolerance.reduce(
+            (a, b) => (a - expected).abs() <= (b - expected).abs() ? a : b,
+          );
+          notes.add(
+            '≈ "$keyword" close match: got $closest '
+            '(Δ${(closest - expected).abs()}, within ±10)',
+          );
           return true;
         }
       }

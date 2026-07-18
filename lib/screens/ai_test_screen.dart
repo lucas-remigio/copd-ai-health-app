@@ -259,9 +259,31 @@ class _AITestScreenState extends State<AITestScreen> {
             color: result.passed ? Colors.green : Colors.red,
           ),
         ),
-        title: Text(
-          result.testCase.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                result.testCase.name,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (result.hasCloseMatch)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '≈ close',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.amber.shade800,
+                  ),
+                ),
+              ),
+          ],
         ),
         subtitle: Text(
           '${result.score}/${result.maxScore} (${result.percentage.toStringAsFixed(1)}%)',
@@ -310,6 +332,31 @@ class _AITestScreenState extends State<AITestScreen> {
                       child: Text(
                         '• $issue',
                         style: const TextStyle(fontSize: 12, color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Notes (close matches within ±10 tolerance)
+                if (result.notes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Notes (passed within ±10 tolerance):',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ...result.notes.map(
+                    (note) => Padding(
+                      padding: const EdgeInsets.only(left: 8, top: 2),
+                      child: Text(
+                        '• $note',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.amber.shade800,
+                        ),
                       ),
                     ),
                   ),

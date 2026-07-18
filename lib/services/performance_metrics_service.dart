@@ -15,6 +15,7 @@ class PerformanceMetricsService {
 
   final Battery _battery = Battery();
   final List<PerformanceMetrics> _metrics = [];
+  final List<TestRunSummary> _testRuns = [];
 
   // Tracking state for current inference
   DateTime? _inferenceStartTime;
@@ -31,14 +32,24 @@ class PerformanceMetricsService {
   bool _autoExport = false;
 
   List<PerformanceMetrics> get allMetrics => List.unmodifiable(_metrics);
+  List<TestRunSummary> get testRuns => List.unmodifiable(_testRuns);
   bool get isEnabled => _isEnabled;
+
+  /// The most recently completed accuracy test run, if any.
+  TestRunSummary? get lastTestRun => _testRuns.isEmpty ? null : _testRuns.last;
+
+  /// Cumulative all-time accuracy across every recorded test run.
+  Map<String, dynamic> get cumulativeAccuracy =>
+      TestRunSummary.cumulative(_testRuns);
 
   /// Initialize the service
   Future<void> initialize() async {
     await _loadSettings();
     await _loadStoredMetrics();
+    await _loadTestRuns();
     debugPrint('📊 Performance Metrics Service initialized');
     debugPrint('   Stored metrics: ${_metrics.length}');
+    debugPrint('   Stored test runs: ${_testRuns.length}');
     debugPrint('   Tracking enabled: $_isEnabled');
   }
 
@@ -182,6 +193,16 @@ class PerformanceMetricsService {
     return PerformanceMetrics.calculateStats(_metrics);
   }
 
+  /// Record the result of a completed accuracy test-suite run.
+  Future<void> recordTestRun(TestRunSummary summary) async {
+    _testRuns.add(summary);
+    await _saveTestRuns();
+    debugPrint(
+      '🎯 Recorded test run: ${summary.passed}/${summary.total} passed '
+      '(${summary.passRate.toStringAsFixed(1)}%)',
+    );
+  }
+
   /// Export metrics to CSV file
   Future<File> exportToCSV() async {
     final directory = await getApplicationDocumentsDirectory();
@@ -245,6 +266,8 @@ class PerformanceMetricsService {
       'total_metrics': _metrics.length,
       'statistics': getStatistics(),
       'metrics': _metrics.map((m) => m.toJson()).toList(),
+      'accuracy_cumulative': cumulativeAccuracy,
+      'test_runs': _testRuns.map((r) => r.toJson()).toList(),
     };
 
     await file.writeAsString(JsonEncoder.withIndent('  ').convert(data));
@@ -256,8 +279,10 @@ class PerformanceMetricsService {
   /// Clear all metrics
   Future<void> clearMetrics() async {
     _metrics.clear();
+    _testRuns.clear();
     await _saveMetrics();
-    debugPrint('🗑️ Cleared all performance metrics');
+    await _saveTestRuns();
+    debugPrint('🗑️ Cleared all performance metrics and test runs');
   }
 
   /// Enable/disable tracking
@@ -319,6 +344,35 @@ class PerformanceMetricsService {
       }
     } catch (e) {
       debugPrint('⚠️ Error loading metrics: $e');
+    }
+  }
+
+  Future<void> _saveTestRuns() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = _testRuns.map((r) => jsonEncode(r.toJson())).toList();
+      await prefs.setStringList('accuracy_test_runs', jsonList);
+    } catch (e) {
+      debugPrint('⚠️ Error saving test runs: $e');
+    }
+  }
+
+  Future<void> _loadTestRuns() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = prefs.getStringList('accuracy_test_runs') ?? [];
+
+      _testRuns.clear();
+      for (final jsonStr in jsonList) {
+        try {
+          final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+          _testRuns.add(TestRunSummary.fromJson(json));
+        } catch (e) {
+          debugPrint('⚠️ Error parsing test run: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error loading test runs: $e');
     }
   }
 

@@ -309,6 +309,10 @@ class TestResult {
   final int score;
   final int maxScore;
   final List<String> issues;
+
+  /// Non-fatal observations, e.g. a numeric value that passed within the
+  /// ±10 tolerance but did not match the expected value exactly.
+  final List<String> notes;
   final Map<String, dynamic>? metrics;
 
   TestResult({
@@ -318,8 +322,13 @@ class TestResult {
     required this.score,
     required this.maxScore,
     required this.issues,
+    this.notes = const [],
     this.metrics,
   });
 
   double get percentage => maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+  /// True when the result passed but at least one value only matched within
+  /// the ±10 tolerance (not an exact match).
+  bool get hasCloseMatch => notes.isNotEmpty;
 }

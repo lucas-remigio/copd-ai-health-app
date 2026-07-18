@@ -1,3 +1,75 @@
+/// Summary of a single accuracy test-suite run (from TestRunnerService).
+/// Persisted so the metrics screen can show both the latest run and an
+/// all-time cumulative pass/fail tally across every run.
+class TestRunSummary {
+  final DateTime timestamp;
+  final String modelName;
+  final int total;
+  final int passed;
+  final int failed;
+  final double averageScore; // percentage 0-100
+
+  TestRunSummary({
+    required this.timestamp,
+    required this.modelName,
+    required this.total,
+    required this.passed,
+    required this.failed,
+    required this.averageScore,
+  });
+
+  /// Pass rate as a percentage (0-100).
+  double get passRate => total > 0 ? (passed / total) * 100 : 0.0;
+
+  Map<String, dynamic> toJson() => {
+    'timestamp': timestamp.toIso8601String(),
+    'model_name': modelName,
+    'total': total,
+    'passed': passed,
+    'failed': failed,
+    'average_score': averageScore,
+    'pass_rate': passRate,
+  };
+
+  factory TestRunSummary.fromJson(Map<String, dynamic> json) => TestRunSummary(
+    timestamp: DateTime.parse(json['timestamp']),
+    modelName: json['model_name'] ?? 'Unknown',
+    total: json['total'] ?? 0,
+    passed: json['passed'] ?? 0,
+    failed: json['failed'] ?? 0,
+    averageScore: (json['average_score'] ?? 0).toDouble(),
+  );
+
+  /// Aggregate a list of runs into cumulative all-time totals.
+  static Map<String, dynamic> cumulative(List<TestRunSummary> runs) {
+    if (runs.isEmpty) {
+      return {
+        'runs': 0,
+        'total': 0,
+        'passed': 0,
+        'failed': 0,
+        'pass_rate': 0.0,
+        'average_score': 0.0,
+      };
+    }
+
+    final total = runs.fold<int>(0, (a, r) => a + r.total);
+    final passed = runs.fold<int>(0, (a, r) => a + r.passed);
+    final failed = runs.fold<int>(0, (a, r) => a + r.failed);
+    final avgScore =
+        runs.fold<double>(0.0, (a, r) => a + r.averageScore) / runs.length;
+
+    return {
+      'runs': runs.length,
+      'total': total,
+      'passed': passed,
+      'failed': failed,
+      'pass_rate': total > 0 ? (passed / total) * 100 : 0.0,
+      'average_score': avgScore,
+    };
+  }
+}
+
 class PerformanceMetrics {
   final DateTime timestamp;
   final String modelName;
