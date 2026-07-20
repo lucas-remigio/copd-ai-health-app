@@ -160,13 +160,29 @@ class TestCase {
     );
   }
 
+  /// Builds a 100-case suite: 70 goal-achieved (exercises the step-math and the
+  /// exact "Nova meta" value), 15 not-achieved for health reasons and 15 for
+  /// other reasons (both exercise the refuse-to-increase / maintain behavior).
+  /// Pass a [seed] for a reproducible suite.
   static List<TestCase> getDefaultCases({int? seed}) {
     final random = Random(seed);
 
     return [
-      ..._buildRandomGoalAchievedCases(random, count: 24),
-      ..._buildRandomHealthCases(random),
-      ..._buildRandomOtherCases(random),
+      ..._buildRandomGoalAchievedCases(random, count: 70),
+      ..._buildNotAchievedCases(
+        random,
+        count: 15,
+        label: 'Health',
+        reasons: _healthReasons,
+        buildCase: notAchievedHealth,
+      ),
+      ..._buildNotAchievedCases(
+        random,
+        count: 15,
+        label: 'Other',
+        reasons: _otherReasons,
+        buildCase: notAchievedOther,
+      ),
     ];
   }
 
@@ -200,75 +216,170 @@ class TestCase {
     return cases;
   }
 
-  static List<TestCase> _buildRandomHealthCases(Random random) {
-    final feverGoal = _pick(random, _allowedWeeklyGoals);
-    final breathlessnessGoal = _pick(random, _allowedWeeklyGoals);
-    final chestPainGoal = _pick(random, _allowedWeeklyGoals);
+  /// Generates [count] not-achieved cases by cycling through a shuffled [reasons]
+  /// pool, each with a randomized weekly goal and (missed) average. [buildCase]
+  /// selects the health vs other variant so both share one implementation.
+  static List<TestCase> _buildNotAchievedCases(
+    Random random, {
+    required int count,
+    required String label,
+    required List<_NotAchievedReason> reasons,
+    required _NotAchievedBuilder buildCase,
+  }) {
+    final pool = List<_NotAchievedReason>.from(reasons)..shuffle(random);
+    final cases = <TestCase>[];
 
-    return [
-      notAchievedHealth(
-        name: 'Not Achieved - Fever (Health) - $feverGoal',
-        weeklyGoal: feverGoal,
-        averageSteps: _generateMissedAverage(random, feverGoal),
-        reason: 'tive febre e não pude fazer exercício.',
-        additionalExpectedKeywords: ['recuperação', 'saúde'],
-        mustNotContain: [
-          'aumentar',
-          'nova meta',
-          ..._randomDistractorGoals(random, actualGoal: feverGoal, count: 2),
-        ],
-      ),
-      notAchievedHealth(
-        name: 'Not Achieved - Breathlessness (Health) - $breathlessnessGoal',
-        weeklyGoal: breathlessnessGoal,
-        averageSteps: _generateMissedAverage(random, breathlessnessGoal),
-        reason: 'senti muita falta de ar.',
-        additionalExpectedKeywords: ['compreendo', 'médico'],
-        mustNotContain: ['aumentar', 'reduzir'],
-      ),
-      notAchievedHealth(
-        name: 'Not Achieved - Chest Pain (Health) - $chestPainGoal',
-        weeklyGoal: chestPainGoal,
-        averageSteps: _generateMissedAverage(random, chestPainGoal),
-        reason: 'senti dores no peito.',
-        additionalExpectedKeywords: ['saúde', 'prioridade'],
-        mustNotContain: ['aumentar', 'culpa'],
-      ),
-    ];
+    for (var index = 0; index < count; index++) {
+      final reason = pool[index % pool.length];
+      final weeklyGoal = _pick(random, _allowedWeeklyGoals);
+
+      cases.add(
+        buildCase(
+          name:
+              'Not Achieved - $label - Case ${index + 1} '
+              '(${reason.label}, $weeklyGoal passos)',
+          weeklyGoal: weeklyGoal,
+          averageSteps: _generateMissedAverage(random, weeklyGoal),
+          reason: reason.text,
+          additionalExpectedKeywords: reason.expectedKeywords,
+          mustNotContain: reason.mustNotContain,
+        ),
+      );
+    }
+
+    return cases;
   }
 
-  static List<TestCase> _buildRandomOtherCases(Random random) {
-    final rainGoal = _pick(random, _allowedWeeklyGoals);
-    final workGoal = _pick(random, _allowedWeeklyGoals);
-    final travelGoal = _pick(random, _allowedWeeklyGoals);
+  /// Distinct COPD-relevant reasons a patient did not meet the goal for a
+  /// *health* motive. The assistant must stay empathetic and never push for more
+  /// activity ('aumentar' is always forbidden).
+  static const List<_NotAchievedReason> _healthReasons = [
+    _NotAchievedReason(
+      label: 'Fever',
+      text: 'tive febre e não pude fazer exercício.',
+      expectedKeywords: ['recuperação', 'saúde'],
+      mustNotContain: ['aumentar', 'nova meta'],
+    ),
+    _NotAchievedReason(
+      label: 'Breathlessness',
+      text: 'senti muita falta de ar.',
+      expectedKeywords: ['compreendo', 'médico'],
+      mustNotContain: ['aumentar', 'reduzir'],
+    ),
+    _NotAchievedReason(
+      label: 'Chest pain',
+      text: 'senti dores no peito.',
+      expectedKeywords: ['saúde', 'prioridade'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'Dizziness',
+      text: 'senti tonturas quando tentei caminhar.',
+      expectedKeywords: ['compreendo', 'médico'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'Fatigue',
+      text: 'senti um cansaço extremo durante toda a semana.',
+      expectedKeywords: ['descanso', 'compreendo'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'COPD exacerbation',
+      text: 'tive uma exacerbação da minha DPOC.',
+      expectedKeywords: ['saúde', 'médico'],
+      mustNotContain: ['aumentar', 'nova meta'],
+    ),
+    _NotAchievedReason(
+      label: 'Respiratory infection',
+      text: 'apanhei uma infeção respiratória.',
+      expectedKeywords: ['recuperação', 'saúde'],
+      mustNotContain: ['aumentar', 'reduzir'],
+    ),
+    _NotAchievedReason(
+      label: 'Joint pain',
+      text: 'tive muitas dores nas articulações.',
+      expectedKeywords: ['compreendo', 'descanso'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'Persistent cough',
+      text: 'tive uma tosse persistente e muita expetoração.',
+      expectedKeywords: ['saúde', 'médico'],
+      mustNotContain: ['aumentar', 'reduzir'],
+    ),
+    _NotAchievedReason(
+      label: 'Palpitations',
+      text: 'senti palpitações no coração ao esforçar-me.',
+      expectedKeywords: ['médico', 'saúde'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+  ];
 
-    return [
-      notAchievedOther(
-        name: 'Not Achieved - Rain (Other) - $rainGoal',
-        weeklyGoal: rainGoal,
-        averageSteps: _generateMissedAverage(random, rainGoal),
-        reason: 'choveu muito e não consegui sair.',
-        additionalExpectedKeywords: ['natural', 'estratégias'],
-        mustNotContain: ['aumentar', 'culpa', 'preocupes'],
-      ),
-      notAchievedOther(
-        name: 'Not Achieved - Work (Other) - $workGoal',
-        weeklyGoal: workGoal,
-        averageSteps: _generateMissedAverage(random, workGoal),
-        reason: 'tive muito trabalho esta semana.',
-        additionalExpectedKeywords: ['compreendo', 'retomar'],
-        mustNotContain: ['aumentar', 'reduzir'],
-      ),
-      notAchievedOther(
-        name: 'Not Achieved - Travel (Other) - $travelGoal',
-        weeklyGoal: travelGoal,
-        averageSteps: _generateMissedAverage(random, travelGoal),
-        reason: 'estive de viagem.',
-        additionalExpectedKeywords: ['normal', 'próxima'],
-        mustNotContain: ['aumentar', 'falha'],
-      ),
-    ];
-  }
+  /// Distinct non-medical reasons the goal was missed. The assistant must
+  /// normalize the setback and keep the goal, never increasing it.
+  static const List<_NotAchievedReason> _otherReasons = [
+    _NotAchievedReason(
+      label: 'Rain',
+      text: 'choveu muito e não consegui sair.',
+      expectedKeywords: ['natural', 'estratégias'],
+      mustNotContain: ['aumentar', 'culpa', 'preocupes'],
+    ),
+    _NotAchievedReason(
+      label: 'Work',
+      text: 'tive muito trabalho esta semana.',
+      expectedKeywords: ['compreendo', 'retomar'],
+      mustNotContain: ['aumentar', 'reduzir'],
+    ),
+    _NotAchievedReason(
+      label: 'Travel',
+      text: 'estive de viagem.',
+      expectedKeywords: ['normal', 'próxima'],
+      mustNotContain: ['aumentar', 'falha'],
+    ),
+    _NotAchievedReason(
+      label: 'Low motivation',
+      text: 'não tive motivação para caminhar.',
+      expectedKeywords: ['compreendo', 'estratégias'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'Family commitments',
+      text: 'tive vários compromissos familiares.',
+      expectedKeywords: ['compreendo', 'retomar'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'Heat',
+      text: 'esteve demasiado calor para sair à rua.',
+      expectedKeywords: ['natural', 'estratégias'],
+      mustNotContain: ['aumentar', 'preocupes'],
+    ),
+    _NotAchievedReason(
+      label: 'Cold',
+      text: 'esteve demasiado frio lá fora.',
+      expectedKeywords: ['natural', 'próxima'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'No time',
+      text: 'não tive tempo esta semana.',
+      expectedKeywords: ['compreendo', 'retomar'],
+      mustNotContain: ['aumentar', 'reduzir'],
+    ),
+    _NotAchievedReason(
+      label: 'Sore feet',
+      text: 'os sapatos magoavam-me os pés.',
+      expectedKeywords: ['compreendo', 'estratégias'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+    _NotAchievedReason(
+      label: 'Low mood',
+      text: 'senti-me em baixo e sem energia.',
+      expectedKeywords: ['compreendo', 'próxima'],
+      mustNotContain: ['aumentar', 'culpa'],
+    ),
+  ];
 
   static int _generateAchievedAverage(Random random, int weeklyGoal) {
     return weeklyGoal + _pick(random, _allowedAchievedStepBonuses);
@@ -282,25 +393,37 @@ class TestCase {
     return weeklyGoal - _pick(random, validShortfalls);
   }
 
-  static List<String> _randomDistractorGoals(
-    Random random, {
-    required int actualGoal,
-    required int count,
-  }) {
-    final distractors =
-        _allowedWeeklyGoals
-            .where((goal) => goal != actualGoal)
-            .map((goal) => '$goal')
-            .toList()
-          ..shuffle(random);
-
-    return distractors.take(count).toList();
-  }
-
   static T _pick<T>(Random random, List<T> values) {
     return values[random.nextInt(values.length)];
   }
 }
+
+/// A single not-achieved reason template used to generate many cases.
+class _NotAchievedReason {
+  final String label; // short English tag for the test name
+  final String text; // the patient's reason, in PT-PT
+  final List<String> expectedKeywords;
+  final List<String> mustNotContain;
+
+  const _NotAchievedReason({
+    required this.label,
+    required this.text,
+    this.expectedKeywords = const [],
+    this.mustNotContain = const ['aumentar'],
+  });
+}
+
+/// Shared shape of [TestCase.notAchievedHealth] and [TestCase.notAchievedOther]
+/// so one generator can build either variant.
+typedef _NotAchievedBuilder =
+    TestCase Function({
+      required String name,
+      required int weeklyGoal,
+      required int averageSteps,
+      required String reason,
+      List<String> additionalExpectedKeywords,
+      List<String> mustNotContain,
+    });
 
 class TestResult {
   final TestCase testCase;

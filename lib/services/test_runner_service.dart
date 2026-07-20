@@ -50,6 +50,10 @@ class TestRunnerService {
     _currentTestIndex = 0;
     _results.clear();
 
+    // Stable id for this run so each incremental save updates one summary entry
+    // (via upsert) rather than appending a new row per test.
+    final runStartedAt = DateTime.now();
+
     try {
       for (int i = 0; i < testCases.length; i++) {
         _currentTestIndex = i;
@@ -66,28 +70,34 @@ class TestRunnerService {
 
         onTestComplete?.call(result);
 
+        // Persist after every test so a cancelled or killed run still leaves its
+        // partial accuracy stats on the metrics screen.
+        await _persistRunSummary(runStartedAt);
+
         // Small delay between tests
         await Future.delayed(const Duration(milliseconds: 500));
-      }
-
-      // Persist this run's pass/fail summary so the metrics screen can show
-      // both the latest run and the all-time cumulative accuracy.
-      if (_results.isNotEmpty) {
-        final summary = getSummary();
-        await _aiService.metricsService.recordTestRun(
-          TestRunSummary(
-            timestamp: DateTime.now(),
-            modelName: _aiService.currentModel.name,
-            total: summary['total'] as int,
-            passed: summary['passed'] as int,
-            failed: summary['failed'] as int,
-            averageScore: (summary['average_score'] as num).toDouble(),
-          ),
-        );
       }
     } finally {
       _isRunning = false;
     }
+  }
+
+  /// Upsert the current run's pass/fail summary so the metrics screen can show
+  /// both the latest run and the all-time cumulative accuracy — even mid-run.
+  Future<void> _persistRunSummary(DateTime runStartedAt) async {
+    if (_results.isEmpty) return;
+
+    final summary = getSummary();
+    await _aiService.metricsService.upsertTestRun(
+      TestRunSummary(
+        timestamp: runStartedAt,
+        modelName: _aiService.currentModel.name,
+        total: summary['total'] as int,
+        passed: summary['passed'] as int,
+        failed: summary['failed'] as int,
+        averageScore: (summary['average_score'] as num).toDouble(),
+      ),
+    );
   }
 
   /// Run a single test case

@@ -203,6 +203,22 @@ class PerformanceMetricsService {
     );
   }
 
+  /// Insert or update the running summary for an in-progress test suite,
+  /// identified by its start [TestRunSummary.timestamp]. Called after every test
+  /// so a run that is cancelled or killed mid-way still leaves its partial
+  /// accuracy stats persisted, instead of only recording once at the end.
+  Future<void> upsertTestRun(TestRunSummary summary) async {
+    final index = _testRuns.indexWhere(
+      (run) => run.timestamp == summary.timestamp,
+    );
+    if (index >= 0) {
+      _testRuns[index] = summary;
+    } else {
+      _testRuns.add(summary);
+    }
+    await _saveTestRuns();
+  }
+
   /// Export metrics to CSV file
   Future<File> exportToCSV() async {
     final directory = await getApplicationDocumentsDirectory();
