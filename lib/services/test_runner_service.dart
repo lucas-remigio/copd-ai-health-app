@@ -52,6 +52,7 @@ class TestRunnerService {
     Function(int index, TestCase testCase)? onTestStart,
     Function(TestResult result)? onTestComplete,
     Function(Duration elapsed, double headroom)? onCooldown,
+    bool coolingEnabled = true,
   }) async {
     if (_isRunning) return;
 
@@ -72,8 +73,11 @@ class TestRunnerService {
 
         // Cool down BEFORE measuring so a thermally-throttled inference is never
         // recorded — this keeps TTFT and tokens/sec comparable across the run.
-        await _coolDownIfNeeded(onCooldown: onCooldown);
-        if (_cancelRequested) break; // don't start a test after a cancel
+        // Can be turned off to deliberately capture unthrottled/hot-device data.
+        if (coolingEnabled) {
+          await _coolDownIfNeeded(onCooldown: onCooldown);
+          if (_cancelRequested) break; // don't start a test after a cancel
+        }
 
         onTestStart?.call(i, testCase);
 

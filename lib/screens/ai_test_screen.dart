@@ -25,6 +25,10 @@ class _AITestScreenState extends State<AITestScreen> {
   int _currentTestIndex = 0;
   String _currentStatus = 'Ready to run tests';
 
+  // When false, the thermal cooldown between tests is skipped so a full run can
+  // be measured on a hot/throttled device for comparison.
+  bool _coolingEnabled = true;
+
   // Live thermal readout, polled while the screen is open so the reading and the
   // graph work all the time — before, during and after a run.
   final ThermalService _thermal = ThermalService();
@@ -104,6 +108,7 @@ class _AITestScreenState extends State<AITestScreen> {
               '${elapsed.inSeconds}s (headroom ${headroom.toStringAsFixed(2)})';
         });
       },
+      coolingEnabled: _coolingEnabled,
     );
 
     if (!mounted) return;
@@ -270,6 +275,31 @@ class _AITestScreenState extends State<AITestScreen> {
               ),
             ],
           ),
+
+          // Thermal cooldown toggle: off = measure the model without throttling
+          // control (hot-device data). Locked while a run is in progress.
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            value: _coolingEnabled,
+            onChanged: _isRunning
+                ? null
+                : (value) => setState(() => _coolingEnabled = value),
+            title: const Text(
+              'Arrefecimento térmico entre testes',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              _coolingEnabled
+                  ? 'Ativo — espera arrefecer antes de cada teste'
+                  : '⚠️ Desativado — corrida completa sem controlo de throttling',
+              style: TextStyle(
+                fontSize: 12,
+                color: _coolingEnabled ? Colors.grey[600] : Colors.orange,
+              ),
+            ),
+          ),
+
           if (summary['total'] > 0) ...[
             const SizedBox(height: 16),
             Row(
