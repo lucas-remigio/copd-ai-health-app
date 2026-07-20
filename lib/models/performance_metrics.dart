@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// Summary of a single accuracy test-suite run (from TestRunnerService).
 /// Persisted so the metrics screen can show both the latest run and an
 /// all-time cumulative pass/fail tally across every run.
@@ -183,41 +185,120 @@ Time: ${timestamp.toString().split('.')[0]}
     final avgLatencies = metrics.map((m) => m.averageTokenLatency).toList();
     final totalTimes = metrics.map((m) => m.totalGenerationTime).toList();
     final drains = metrics.map((m) => m.batteryDrain).toList();
+    final drainRates = metrics.map((m) => m.batteryDrainRate).toList();
     final speeds = metrics
         .map((m) => m.tokenCount / (m.totalGenerationTime / 1000))
         .toList();
+    final tokenCounts = metrics.map((m) => m.tokenCount).toList();
+    final promptTokens = metrics.map((m) => m.promptTokens).toList();
+
+    // Optional sensors: only present on some rows, so filter nulls first.
+    final rams = metrics
+        .map((m) => m.appMemoryUsageMB)
+        .whereType<double>()
+        .toList();
+    final temps = metrics
+        .map((m) => m.batteryTemperatureCelsius)
+        .whereType<double>()
+        .toList();
+    final headrooms = metrics
+        .map((m) => m.thermalHeadroom)
+        .whereType<double>()
+        .toList();
+    final diskSizes = metrics
+        .map((m) => m.modelDiskSizeMB)
+        .whereType<double>()
+        .toList();
+
+    // Count inferences per message type (chat / questionnaire / test).
+    final messageTypeCounts = <String, int>{};
+    for (final m in metrics) {
+      messageTypeCounts[m.messageType] =
+          (messageTypeCounts[m.messageType] ?? 0) + 1;
+    }
+
+    final first = metrics.first.timestamp;
+    final last = metrics.last.timestamp;
 
     return {
       'total_inferences': metrics.length,
       'model': metrics.first.modelName,
 
-      // Latency statistics
+      // Latency statistics (TTFT) — with spread + percentiles for the paper.
       'ttft_avg_ms': _average(ttfts),
+      'ttft_median_ms': _median(ttfts),
       'ttft_min_ms': ttfts.reduce((a, b) => a < b ? a : b),
       'ttft_max_ms': ttfts.reduce((a, b) => a > b ? a : b),
       'ttft_std_ms': _standardDeviation(ttfts),
+      'ttft_p90_ms': _percentile(ttfts, 90),
+      'ttft_p95_ms': _percentile(ttfts, 95),
+      'ttft_p99_ms': _percentile(ttfts, 99),
 
       'token_latency_avg_ms': _average(avgLatencies),
+      'token_latency_median_ms': _median(avgLatencies),
       'token_latency_min_ms': avgLatencies.reduce((a, b) => a < b ? a : b),
       'token_latency_max_ms': avgLatencies.reduce((a, b) => a > b ? a : b),
+      'token_latency_std_ms': _standardDeviation(avgLatencies),
 
       'total_time_avg_ms': _average(totalTimes),
+      'total_time_median_ms': _median(totalTimes),
       'total_time_min_ms': totalTimes.reduce((a, b) => a < b ? a : b),
       'total_time_max_ms': totalTimes.reduce((a, b) => a > b ? a : b),
+      'total_time_sum_ms': totalTimes.reduce((a, b) => a + b),
 
       'speed_avg_tokens_per_sec': _average(speeds),
+      'speed_median_tokens_per_sec': _median(speeds),
       'speed_min_tokens_per_sec': speeds.reduce((a, b) => a < b ? a : b),
       'speed_max_tokens_per_sec': speeds.reduce((a, b) => a > b ? a : b),
+      'speed_std_tokens_per_sec': _standardDeviation(speeds),
+
+      // Token throughput
+      'tokens_generated_total': tokenCounts.reduce((a, b) => a + b),
+      'tokens_generated_avg': _average(tokenCounts),
+      'tokens_generated_max': tokenCounts.reduce((a, b) => a > b ? a : b),
+      'prompt_tokens_total': promptTokens.reduce((a, b) => a + b),
+      'prompt_tokens_avg': _average(promptTokens),
 
       // Battery statistics
       'battery_drain_avg_percent': _average(drains),
       'battery_drain_min_percent': drains.reduce((a, b) => a < b ? a : b),
       'battery_drain_max_percent': drains.reduce((a, b) => a > b ? a : b),
       'battery_drain_total_percent': drains.reduce((a, b) => a + b),
+      'battery_drain_rate_avg_percent_per_sec': _average(drainRates),
+      'battery_drain_rate_max_percent_per_sec': drainRates.isEmpty
+          ? 0.0
+          : drainRates.reduce((a, b) => a > b ? a : b),
+
+      // Memory statistics (only from rows that captured them)
+      'app_memory_avg_mb': rams.isEmpty ? null : _average(rams),
+      'app_memory_min_mb': rams.isEmpty
+          ? null
+          : rams.reduce((a, b) => a < b ? a : b),
+      'app_memory_max_mb': rams.isEmpty
+          ? null
+          : rams.reduce((a, b) => a > b ? a : b),
+      'model_disk_size_mb': diskSizes.isEmpty ? null : diskSizes.last,
+
+      // Thermal statistics (snapshot taken before each generation)
+      'battery_temp_avg_celsius': temps.isEmpty ? null : _average(temps),
+      'battery_temp_min_celsius': temps.isEmpty
+          ? null
+          : temps.reduce((a, b) => a < b ? a : b),
+      'battery_temp_max_celsius': temps.isEmpty
+          ? null
+          : temps.reduce((a, b) => a > b ? a : b),
+      'thermal_headroom_avg': headrooms.isEmpty ? null : _average(headrooms),
+      'thermal_headroom_max': headrooms.isEmpty
+          ? null
+          : headrooms.reduce((a, b) => a > b ? a : b),
+
+      // Context breakdown
+      'message_type_counts': messageTypeCounts,
 
       // Data range
-      'first_timestamp': metrics.first.timestamp.toIso8601String(),
-      'last_timestamp': metrics.last.timestamp.toIso8601String(),
+      'first_timestamp': first.toIso8601String(),
+      'last_timestamp': last.toIso8601String(),
+      'collection_span_minutes': last.difference(first).inSeconds / 60.0,
     };
   }
 
@@ -234,6 +315,21 @@ Time: ${timestamp.toString().split('.')[0]}
             .map((v) => (v - avg) * (v - avg))
             .fold<double>(0.0, (a, b) => a + b) /
         values.length;
-    return variance;
+    return variance.isNaN ? 0.0 : math.sqrt(variance);
   }
+
+  /// Linear-interpolated percentile [p] (0-100) of [values].
+  static double _percentile(List<num> values, double p) {
+    if (values.isEmpty) return 0.0;
+    final sorted = [...values]..sort();
+    if (sorted.length == 1) return sorted.first.toDouble();
+    final rank = (p / 100) * (sorted.length - 1);
+    final lower = rank.floor();
+    final upper = rank.ceil();
+    if (lower == upper) return sorted[lower].toDouble();
+    final weight = rank - lower;
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+  }
+
+  static double _median(List<num> values) => _percentile(values, 50);
 }
