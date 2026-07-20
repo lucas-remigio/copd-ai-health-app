@@ -50,6 +50,13 @@ class _AITestScreenState extends State<AITestScreen> {
               : '❌ ${result.testCase.name}';
         });
       },
+      onCooldown: (elapsed, headroom) {
+        setState(() {
+          _currentStatus =
+              '🌡️ A arrefecer o dispositivo... '
+              '${elapsed.inSeconds}s (headroom ${headroom.toStringAsFixed(2)})';
+        });
+      },
     );
 
     setState(() {

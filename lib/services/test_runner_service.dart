@@ -2,15 +2,36 @@ import 'package:flutter/foundation.dart';
 import '../models/test_case.dart';
 import '../models/performance_metrics.dart';
 import 'ai_llama_service.dart';
+import 'thermal_governor.dart';
+import 'thermal_service.dart';
 
 class TestRunnerService {
   final AILlamaService _aiService;
+  final ThermalService _thermalService;
+  final ThermalGovernor _thermalGovernor;
+
+  /// How often to re-poll headroom while cooling down. Android rate-limits the
+  /// headroom API to roughly once per second, so keep this comfortably above 1s.
+  final Duration _cooldownPollInterval;
+
+  /// Safety cap so a stuck-hot device can never stall a run indefinitely.
+  final Duration _maxCooldownPerTest;
+
   final List<TestResult> _results = [];
 
   bool _isRunning = false;
   int _currentTestIndex = 0;
 
-  TestRunnerService(this._aiService);
+  TestRunnerService(
+    this._aiService, {
+    ThermalService? thermalService,
+    ThermalGovernor? thermalGovernor,
+    Duration cooldownPollInterval = const Duration(seconds: 5),
+    Duration maxCooldownPerTest = const Duration(minutes: 3),
+  }) : _thermalService = thermalService ?? ThermalService(),
+       _thermalGovernor = thermalGovernor ?? ThermalGovernor(),
+       _cooldownPollInterval = cooldownPollInterval,
+       _maxCooldownPerTest = maxCooldownPerTest;
 
   bool get isRunning => _isRunning;
   int get currentTestIndex => _currentTestIndex;
@@ -21,6 +42,7 @@ class TestRunnerService {
     List<TestCase> testCases, {
     Function(int index, TestCase testCase)? onTestStart,
     Function(TestResult result)? onTestComplete,
+    Function(Duration elapsed, double headroom)? onCooldown,
   }) async {
     if (_isRunning) return;
 
@@ -32,6 +54,10 @@ class TestRunnerService {
       for (int i = 0; i < testCases.length; i++) {
         _currentTestIndex = i;
         final testCase = testCases[i];
+
+        // Cool down BEFORE measuring so a thermally-throttled inference is never
+        // recorded — this keeps TTFT and tokens/sec comparable across the run.
+        await _coolDownIfNeeded(onCooldown: onCooldown);
 
         onTestStart?.call(i, testCase);
 
@@ -94,6 +120,47 @@ class TestRunnerService {
       notes: validation['notes'] as List<String>,
       metrics: inferenceMetrics?.toJson(),
     );
+  }
+
+  /// Pause until the device has cooled, polling headroom on a hysteresis band.
+  ///
+  /// Returns immediately when the device is cool or exposes no thermal signal,
+  /// and gives up after [_maxCooldownPerTest] so a stuck-hot device never stalls
+  /// the run. Cooling before (not after) a test means no throttled measurement
+  /// is ever recorded.
+  Future<void> _coolDownIfNeeded({
+    Function(Duration elapsed, double headroom)? onCooldown,
+  }) async {
+    final stopwatch = Stopwatch();
+
+    while (stopwatch.elapsed < _maxCooldownPerTest) {
+      final headroom = await _thermalService.getHeadroom();
+      if (headroom == null) return; // no thermal signal — skip gating
+
+      final stillHot = stopwatch.isRunning
+          ? !_thermalGovernor.hasRecovered(headroom)
+          : _thermalGovernor.shouldCoolDown(headroom);
+      if (!stillHot) {
+        if (stopwatch.isRunning) {
+          debugPrint(
+            '✅ Cooled to headroom ${headroom.toStringAsFixed(2)} '
+            'after ${stopwatch.elapsed.inSeconds}s',
+          );
+        }
+        return;
+      }
+
+      if (!stopwatch.isRunning) {
+        stopwatch.start();
+        debugPrint(
+          '🌡️ Headroom ${headroom.toStringAsFixed(2)} too high — cooling down',
+        );
+      }
+      onCooldown?.call(stopwatch.elapsed, headroom);
+      await Future.delayed(_cooldownPollInterval);
+    }
+
+    debugPrint('⚠️ Max cooldown reached; continuing to avoid stalling the run');
   }
 
   /// Validate response against test case criteria
