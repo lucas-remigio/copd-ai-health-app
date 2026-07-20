@@ -35,6 +35,24 @@ class ThermalService {
     return _readStatusAsHeadroom();
   }
 
+  /// Battery temperature in °C, or `null` if unavailable. A readable, absolute
+  /// thermal signal to log per inference (complements the 0..1 headroom).
+  Future<double?> getBatteryTemperature() async {
+    try {
+      final celsius = await _channel.invokeMethod<double>(
+        'getBatteryTemperature',
+      );
+      if (celsius != null && celsius.isFinite && celsius > -50 && celsius < 150) {
+        return celsius;
+      }
+      return null;
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
   Future<double?> _readHeadroom() async {
     try {
       return await _channel.invokeMethod<double>('getThermalHeadroom');

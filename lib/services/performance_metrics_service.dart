@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/performance_metrics.dart';
+import 'thermal_service.dart';
 
 class PerformanceMetricsService {
   static final PerformanceMetricsService _instance =
@@ -14,6 +15,7 @@ class PerformanceMetricsService {
   PerformanceMetricsService._internal();
 
   final Battery _battery = Battery();
+  final ThermalService _thermal = ThermalService();
   final List<PerformanceMetrics> _metrics = [];
   final List<TestRunSummary> _testRuns = [];
 
@@ -22,6 +24,8 @@ class PerformanceMetricsService {
   DateTime? _firstTokenTime;
   int _tokenCount = 0;
   int? _batteryBefore;
+  double? _thermalHeadroomBefore;
+  double? _batteryTempBefore;
   String _currentModelName = '';
   String _currentMessageType = 'chat';
   int _promptTokens = 0;
@@ -62,7 +66,6 @@ class PerformanceMetricsService {
   }) async {
     if (!_isEnabled) return;
 
-    _inferenceStartTime = DateTime.now();
     _firstTokenTime = null;
     _tokenCount = 0;
     _currentModelName = modelName;
@@ -77,6 +80,19 @@ class PerformanceMetricsService {
       debugPrint('⚠️ Could not read battery level: $e');
       _batteryBefore = null;
     }
+
+    // Thermal snapshot before generation, so each row carries its thermal
+    // context for filtering/plotting progression across a long run.
+    _thermalHeadroomBefore = await _thermal.getHeadroom();
+    _batteryTempBefore = await _thermal.getBatteryTemperature();
+    debugPrint(
+      '🌡️ Before generation: ${_batteryTempBefore?.toStringAsFixed(1) ?? "?"}°C, '
+      'headroom ${_thermalHeadroomBefore?.toStringAsFixed(2) ?? "?"}',
+    );
+
+    // Stamp the start time LAST, after the sensor reads, so their latency is not
+    // counted as part of time-to-first-token.
+    _inferenceStartTime = DateTime.now();
   }
 
   /// Record when first token is received
@@ -166,6 +182,8 @@ class PerformanceMetricsService {
       batteryDrainRate: batteryDrainRate,
       modelDiskSizeMB: modelDiskSizeMB,
       appMemoryUsageMB: appMemoryUsageMB,
+      thermalHeadroom: _thermalHeadroomBefore,
+      batteryTemperatureCelsius: _batteryTempBefore,
       promptTokens: _promptTokens,
       messageType: _currentMessageType,
     );
@@ -184,6 +202,8 @@ class PerformanceMetricsService {
     _firstTokenTime = null;
     _tokenCount = 0;
     _batteryBefore = null;
+    _thermalHeadroomBefore = null;
+    _batteryTempBefore = null;
 
     return metrics;
   }
@@ -236,6 +256,7 @@ class PerformanceMetricsService {
       'total_generation_time_ms,token_count,tokens_per_second,'
       'battery_level_before,battery_level_after,battery_drain_percent,'
       'battery_drain_rate_percent_per_sec,model_disk_size_mb,app_memory_usage_mb,'
+      'thermal_headroom,battery_temperature_celsius,'
       'prompt_tokens,message_type',
     );
 
@@ -257,6 +278,8 @@ class PerformanceMetricsService {
         '${metric.batteryDrainRate.toStringAsFixed(6)},'
         '${metric.modelDiskSizeMB?.toStringAsFixed(2) ?? ''},'
         '${metric.appMemoryUsageMB?.toStringAsFixed(2) ?? ''},'
+        '${metric.thermalHeadroom?.toStringAsFixed(3) ?? ''},'
+        '${metric.batteryTemperatureCelsius?.toStringAsFixed(1) ?? ''},'
         '${metric.promptTokens},'
         '${metric.messageType}',
       );
@@ -350,6 +373,9 @@ class PerformanceMetricsService {
                 .toDouble(),
             modelDiskSizeMB: json['model_disk_size_mb']?.toDouble(),
             appMemoryUsageMB: json['app_memory_usage_mb']?.toDouble(),
+            thermalHeadroom: json['thermal_headroom']?.toDouble(),
+            batteryTemperatureCelsius: json['battery_temperature_celsius']
+                ?.toDouble(),
             promptTokens: json['prompt_tokens'],
             messageType: json['message_type'],
           );

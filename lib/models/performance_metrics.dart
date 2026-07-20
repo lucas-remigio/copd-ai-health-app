@@ -90,6 +90,11 @@ class PerformanceMetrics {
   final double? modelDiskSizeMB; // Model file size on disk
   final double? appMemoryUsageMB; // App RAM usage during inference
 
+  // Thermal snapshot taken just BEFORE generation, so a long run can be filtered
+  // and plotted for thermal progression / throttling correlation.
+  final double? thermalHeadroom; // 0.0 cool .. 1.0 at throttle threshold
+  final double? batteryTemperatureCelsius; // device temperature proxy, °C
+
   // Context information
   final int promptTokens; // Estimated prompt size
   final String messageType; // 'questionnaire', 'chat', 'test'
@@ -107,6 +112,8 @@ class PerformanceMetrics {
     required this.batteryDrainRate,
     this.modelDiskSizeMB,
     this.appMemoryUsageMB,
+    this.thermalHeadroom,
+    this.batteryTemperatureCelsius,
     required this.promptTokens,
     required this.messageType,
   });
@@ -126,6 +133,8 @@ class PerformanceMetrics {
     'battery_drain_rate_percent_per_sec': batteryDrainRate,
     'model_disk_size_mb': modelDiskSizeMB,
     'app_memory_usage_mb': appMemoryUsageMB,
+    'thermal_headroom': thermalHeadroom,
+    'battery_temperature_celsius': batteryTemperatureCelsius,
     'prompt_tokens': promptTokens,
     'message_type': messageType,
   };
@@ -154,7 +163,11 @@ Time: ${timestamp.toString().split('.')[0]}
 💾 MEMORY:
   • Model Disk Size: ${modelDiskSizeMB?.toStringAsFixed(1) ?? 'N/A'} MB
   • App RAM Usage: ${appMemoryUsageMB?.toStringAsFixed(1) ?? 'N/A'} MB
-  
+
+🌡️ THERMAL (before generation):
+  • Battery Temp: ${batteryTemperatureCelsius?.toStringAsFixed(1) ?? 'N/A'} °C
+  • Thermal Headroom: ${thermalHeadroom?.toStringAsFixed(2) ?? 'N/A'}
+
 📝 CONTEXT:
   • Prompt Tokens: ~$promptTokens
   • Message Type: $messageType

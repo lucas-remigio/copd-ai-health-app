@@ -20,6 +20,7 @@ class TestRunnerService {
   final List<TestResult> _results = [];
 
   bool _isRunning = false;
+  bool _cancelRequested = false;
   int _currentTestIndex = 0;
 
   TestRunnerService(
@@ -34,8 +35,16 @@ class TestRunnerService {
        _maxCooldownPerTest = maxCooldownPerTest;
 
   bool get isRunning => _isRunning;
+  bool get isCancelling => _cancelRequested;
   int get currentTestIndex => _currentTestIndex;
   List<TestResult> get results => List.unmodifiable(_results);
+
+  /// Request a graceful stop. The current test (and any in-flight cooldown) is
+  /// allowed to finish, then the loop exits. Results completed so far are kept
+  /// and already persisted, since each test upserts the run summary.
+  void cancelRun() {
+    if (_isRunning) _cancelRequested = true;
+  }
 
   /// Run all tests sequentially
   Future<void> runAllTests(
@@ -47,6 +56,7 @@ class TestRunnerService {
     if (_isRunning) return;
 
     _isRunning = true;
+    _cancelRequested = false;
     _currentTestIndex = 0;
     _results.clear();
 
@@ -56,12 +66,14 @@ class TestRunnerService {
 
     try {
       for (int i = 0; i < testCases.length; i++) {
+        if (_cancelRequested) break;
         _currentTestIndex = i;
         final testCase = testCases[i];
 
         // Cool down BEFORE measuring so a thermally-throttled inference is never
         // recorded — this keeps TTFT and tokens/sec comparable across the run.
         await _coolDownIfNeeded(onCooldown: onCooldown);
+        if (_cancelRequested) break; // don't start a test after a cancel
 
         onTestStart?.call(i, testCase);
 
@@ -79,6 +91,7 @@ class TestRunnerService {
       }
     } finally {
       _isRunning = false;
+      _cancelRequested = false;
     }
   }
 
@@ -144,6 +157,7 @@ class TestRunnerService {
     final stopwatch = Stopwatch();
 
     while (stopwatch.elapsed < _maxCooldownPerTest) {
+      if (_cancelRequested) return; // abandon a long cooldown on cancel
       final headroom = await _thermalService.getHeadroom();
       if (headroom == null) return; // no thermal signal — skip gating
 

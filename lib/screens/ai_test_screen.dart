@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/test_case.dart';
 import '../services/ai_llama_service.dart';
 import '../services/test_runner_service.dart';
+import '../services/thermal_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/temperature_chart.dart';
 
 class AITestScreen extends StatefulWidget {
   final AILlamaService aiService;
@@ -18,19 +21,60 @@ class _AITestScreenState extends State<AITestScreen> {
   List<TestCase> _testCases = TestCase.getDefaultCases();
 
   bool _isRunning = false;
+  bool _cancelRequested = false;
   int _currentTestIndex = 0;
   String _currentStatus = 'Ready to run tests';
+
+  // Live thermal readout, polled while the screen is open so the reading and the
+  // graph work all the time — before, during and after a run.
+  final ThermalService _thermal = ThermalService();
+  static const Duration _thermalPollInterval = Duration(seconds: 5);
+  static const int _maxTempSamples = 1440; // ~2h at 5s per sample
+  Timer? _thermalTimer;
+  double? _currentTemp;
+  double? _currentHeadroom;
+  final List<double> _tempSamples = [];
 
   @override
   void initState() {
     super.initState();
     _testRunner = TestRunnerService(widget.aiService);
+    _startThermalPolling();
+  }
+
+  @override
+  void dispose() {
+    _thermalTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startThermalPolling() {
+    _pollThermal(); // take a first reading immediately
+    _thermalTimer = Timer.periodic(
+      _thermalPollInterval,
+      (_) => _pollThermal(),
+    );
+  }
+
+  Future<void> _pollThermal() async {
+    final temp = await _thermal.getBatteryTemperature();
+    final headroom = await _thermal.getHeadroom();
+    if (!mounted) return;
+    setState(() {
+      _currentTemp = temp;
+      _currentHeadroom = headroom;
+      if (temp != null) {
+        _tempSamples.add(temp);
+        if (_tempSamples.length > _maxTempSamples) _tempSamples.removeAt(0);
+      }
+    });
   }
 
   Future<void> _runTests() async {
     setState(() {
       _testCases = TestCase.getDefaultCases();
       _isRunning = true;
+      _cancelRequested = false;
       _currentStatus = 'Starting tests...';
       _currentTestIndex = 0;
     });
@@ -38,6 +82,7 @@ class _AITestScreenState extends State<AITestScreen> {
     await _testRunner.runAllTests(
       _testCases,
       onTestStart: (index, testCase) {
+        if (_cancelRequested) return;
         setState(() {
           _currentTestIndex = index;
           _currentStatus = 'Running: ${testCase.name}';
@@ -51,6 +96,7 @@ class _AITestScreenState extends State<AITestScreen> {
         });
       },
       onCooldown: (elapsed, headroom) {
+        if (_cancelRequested) return;
         setState(() {
           _currentStatus =
               '🌡️ A arrefecer o dispositivo... '
@@ -61,8 +107,19 @@ class _AITestScreenState extends State<AITestScreen> {
 
     setState(() {
       _isRunning = false;
-      _currentStatus = 'Tests completed!';
+      _currentStatus = _cancelRequested
+          ? '🛑 Cancelado — resultados parciais guardados'
+          : 'Tests completed!';
+      _cancelRequested = false;
     });
+  }
+
+  void _cancelRun() {
+    setState(() {
+      _cancelRequested = true;
+      _currentStatus = '🛑 A cancelar... (a terminar o teste atual)';
+    });
+    _testRunner.cancelRun();
   }
 
   @override
@@ -74,6 +131,27 @@ class _AITestScreenState extends State<AITestScreen> {
       appBar: AppBar(
         title: const Text('AI Model Testing'),
         actions: [
+          // Always-visible live temperature readout.
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.thermostat, size: 18, color: Colors.orange),
+                  const SizedBox(width: 4),
+                  Text(
+                    _currentTemp != null
+                        ? '${_currentTemp!.toStringAsFixed(1)}°C'
+                        : '--°C',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (results.isNotEmpty && !_isRunning)
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -91,6 +169,11 @@ class _AITestScreenState extends State<AITestScreen> {
         children: [
           // Status card
           _buildStatusCard(summary),
+
+          const SizedBox(height: 12),
+
+          // Live temperature readout + graph
+          _buildTemperatureCard(),
 
           // Progress indicator
           if (_isRunning)
@@ -115,19 +198,22 @@ class _AITestScreenState extends State<AITestScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isRunning ? null : _runTests,
+        // While running, the button cancels the run (idempotent, disabled once a
+        // cancel is already in progress); otherwise it starts a new run.
+        onPressed: _isRunning
+            ? (_cancelRequested ? null : _cancelRun)
+            : _runTests,
         icon: _isRunning
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
+            ? const Icon(Icons.stop)
             : const Icon(Icons.play_arrow),
-        label: Text(_isRunning ? 'Running...' : 'Run Tests'),
-        backgroundColor: _isRunning ? Colors.grey : AppTheme.primary,
+        label: Text(
+          _isRunning
+              ? (_cancelRequested ? 'A cancelar...' : 'Cancelar')
+              : 'Run Tests',
+        ),
+        backgroundColor: _isRunning
+            ? (_cancelRequested ? Colors.grey : Colors.red)
+            : AppTheme.primary,
       ),
     );
   }
@@ -185,6 +271,68 @@ class _AITestScreenState extends State<AITestScreen> {
                   Colors.purple,
                 ),
               ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemperatureCard() {
+    final tempText = _currentTemp != null
+        ? '${_currentTemp!.toStringAsFixed(1)} °C'
+        : 'N/A';
+    final headroomText = _currentHeadroom != null
+        ? _currentHeadroom!.toStringAsFixed(2)
+        : 'N/A';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.thermostat, color: Colors.orange),
+              const SizedBox(width: 8),
+              Text(
+                'Temperatura: $tempText',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'headroom $headroomText',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_tempSamples.isEmpty)
+            SizedBox(
+              height: 160,
+              child: Center(
+                child: Text(
+                  'A recolher dados de temperatura...',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+              ),
+            )
+          else ...[
+            TemperatureChart(samples: List<double>.from(_tempSamples)),
+            const SizedBox(height: 4),
+            Text(
+              '${_tempSamples.length} amostras · '
+              'min ${_tempSamples.reduce((a, b) => a < b ? a : b).toStringAsFixed(1)}° · '
+              'max ${_tempSamples.reduce((a, b) => a > b ? a : b).toStringAsFixed(1)}°',
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
         ],
