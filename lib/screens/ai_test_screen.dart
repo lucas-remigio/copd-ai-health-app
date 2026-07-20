@@ -82,13 +82,14 @@ class _AITestScreenState extends State<AITestScreen> {
     await _testRunner.runAllTests(
       _testCases,
       onTestStart: (index, testCase) {
-        if (_cancelRequested) return;
+        if (_cancelRequested || !mounted) return;
         setState(() {
           _currentTestIndex = index;
           _currentStatus = 'Running: ${testCase.name}';
         });
       },
       onTestComplete: (result) {
+        if (!mounted) return;
         setState(() {
           _currentStatus = result.passed
               ? '✅ ${result.testCase.name}'
@@ -96,7 +97,7 @@ class _AITestScreenState extends State<AITestScreen> {
         });
       },
       onCooldown: (elapsed, headroom) {
-        if (_cancelRequested) return;
+        if (_cancelRequested || !mounted) return;
         setState(() {
           _currentStatus =
               '🌡️ A arrefecer o dispositivo... '
@@ -105,6 +106,7 @@ class _AITestScreenState extends State<AITestScreen> {
       },
     );
 
+    if (!mounted) return;
     setState(() {
       _isRunning = false;
       _currentStatus = _cancelRequested
