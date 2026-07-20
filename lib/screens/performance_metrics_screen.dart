@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/performance_metrics.dart';
 import '../services/performance_metrics_service.dart';
 import '../theme/app_theme.dart';
+import 'all_inferences_screen.dart';
 
 class PerformanceMetricsScreen extends StatefulWidget {
   const PerformanceMetricsScreen({super.key});
@@ -369,7 +371,7 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
     );
   }
 
-  Widget _buildRecentMetricsList(List metrics) {
+  Widget _buildRecentMetricsList(List<PerformanceMetrics> metrics) {
     final recentMetrics = metrics.reversed.take(5).toList();
 
     return Card(
@@ -378,11 +380,21 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '📝 Recent Inferences',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '📝 Recent Inferences',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                TextButton.icon(
+                  onPressed: _openAllInferences,
+                  icon: const Icon(Icons.list, size: 18),
+                  label: Text('View all (${metrics.length})'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             ...recentMetrics.map((metric) => _buildMetricItem(metric)),
           ],
         ),
@@ -390,9 +402,18 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
     );
   }
 
-  Widget _buildMetricItem(dynamic metric) {
-    final tokensPerSec =
-        metric.tokenCount / (metric.totalGenerationTime / 1000);
+  Future<void> _openAllInferences() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AllInferencesScreen()),
+    );
+    // Deletions on that screen change the data, so refresh the summary on return.
+    if (mounted) setState(() {});
+  }
+
+  Widget _buildMetricItem(PerformanceMetrics metric) {
+    final tokensPerSec = metric.totalGenerationTime > 0
+        ? metric.tokenCount / (metric.totalGenerationTime / 1000)
+        : 0.0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -405,34 +426,69 @@ class _PerformanceMetricsScreenState extends State<PerformanceMetricsScreen> {
             color: AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _formatTime(metric.timestamp),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '${tokensPerSec.toStringAsFixed(1)} tok/s',
-                    style: TextStyle(
-                      color: tokensPerSec > 5 ? Colors.green : Colors.orange,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatTime(metric.timestamp),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${tokensPerSec.toStringAsFixed(1)} tok/s',
+                          style: TextStyle(
+                            color: tokensPerSec > 5
+                                ? Colors.green
+                                : Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'TTFT: ${metric.timeToFirstToken}ms • '
+                      'Tokens: ${metric.tokenCount} • '
+                      'Battery: ${metric.batteryDrain}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'TTFT: ${metric.timeToFirstToken}ms • '
-                'Tokens: ${metric.tokenCount} • '
-                'Battery: ${metric.batteryDrain}%',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: Colors.red.shade600),
+                tooltip: 'Delete this inference',
+                onPressed: () => _deleteMetric(metric),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteMetric(PerformanceMetrics metric) async {
+    final removedIndex = await _metricsService.deleteMetric(metric);
+    if (removedIndex < 0 || !mounted) return;
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Inference deleted'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            await _metricsService.restoreMetric(removedIndex, metric);
+            if (mounted) setState(() {});
+          },
         ),
       ),
     );

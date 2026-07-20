@@ -315,6 +315,24 @@ class PerformanceMetricsService {
     return file;
   }
 
+  /// Delete a single inference metric (matched by identity) and persist.
+  /// Returns its former index so the caller can offer an undo, or -1 if it was
+  /// not found.
+  Future<int> deleteMetric(PerformanceMetrics metric) async {
+    final index = _metrics.indexOf(metric);
+    if (index < 0) return -1;
+    _metrics.removeAt(index);
+    await _saveMetrics();
+    debugPrint('🗑️ Deleted one inference (${_metrics.length} remaining)');
+    return index;
+  }
+
+  /// Re-insert a previously deleted metric at [index] (used to undo a delete).
+  Future<void> restoreMetric(int index, PerformanceMetrics metric) async {
+    _metrics.insert(index.clamp(0, _metrics.length), metric);
+    await _saveMetrics();
+  }
+
   /// Clear all metrics
   Future<void> clearMetrics() async {
     _metrics.clear();

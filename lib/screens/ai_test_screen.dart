@@ -167,15 +167,8 @@ class _AITestScreenState extends State<AITestScreen> {
       ),
       body: Column(
         children: [
-          // Status card
-          _buildStatusCard(summary),
-
-          const SizedBox(height: 12),
-
-          // Live temperature readout + graph
-          _buildTemperatureCard(),
-
-          // Progress indicator
+          // Progress bar stays pinned under the app bar so run progress is
+          // always visible, even after the graph has scrolled away.
           if (_isRunning)
             LinearProgressIndicator(
               value: _testCases.isNotEmpty
@@ -183,17 +176,37 @@ class _AITestScreenState extends State<AITestScreen> {
                   : 0,
             ),
 
-          // Results list
+          // Status card + temperature graph scroll together as a header above
+          // the tests, so scrolling into the results frees most of the screen.
           Expanded(
-            child: results.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: results.length,
-                    itemBuilder: (context, index) {
-                      return _buildResultCard(results[index], index);
-                    },
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      _buildStatusCard(summary),
+                      const SizedBox(height: 12),
+                      _buildTemperatureCard(),
+                      const SizedBox(height: 12),
+                    ],
                   ),
+                ),
+                if (results.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmptyState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList.builder(
+                      itemCount: results.length,
+                      itemBuilder: (context, index) =>
+                          _buildResultCard(results[index], index),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
