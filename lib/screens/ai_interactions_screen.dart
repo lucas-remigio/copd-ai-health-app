@@ -39,12 +39,12 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Histórico de IA'),
+        title: const Text('AI History'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadLog,
-            tooltip: 'Atualizar',
+            tooltip: 'Refresh',
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -61,7 +61,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
                   children: [
                     Icon(Icons.code, size: 20),
                     SizedBox(width: 8),
-                    Text('Exportar JSONL'),
+                    Text('Export JSONL'),
                   ],
                 ),
               ),
@@ -72,7 +72,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
                   children: [
                     Icon(Icons.delete_outline, size: 20, color: Colors.red.shade700),
                     const SizedBox(width: 8),
-                    Text('Limpar Tudo', style: TextStyle(color: Colors.red.shade700)),
+                    Text('Clear All', style: TextStyle(color: Colors.red.shade700)),
                   ],
                 ),
               ),
@@ -97,7 +97,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
           : FloatingActionButton.extended(
               onPressed: _shareFullHistory,
               icon: const Icon(Icons.share),
-              label: const Text('Partilhar Tudo'),
+              label: const Text('Share All'),
             ),
     );
   }
@@ -110,12 +110,12 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
           Icon(Icons.history, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            'Ainda não há interações reais com a IA',
+            'No real AI interactions yet',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
           ),
           const SizedBox(height: 8),
           const Text(
-            '(Mensagens do questionário não são incluídas)',
+            '(Questionnaire messages are not included)',
             style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],
@@ -152,7 +152,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Interação IA • $dateStr',
+                  'AI Interaction • $dateStr',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                 ),
                 Row(
@@ -162,14 +162,14 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
                       onPressed: () => _copyInteraction(input, output, dateStr),
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(4),
-                      tooltip: 'Copiar',
+                      tooltip: 'Copy',
                     ),
                     IconButton(
                       icon: const Icon(Icons.share, size: 16),
                       onPressed: () => _shareInteraction(input, output, dateStr),
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(4),
-                      tooltip: 'Partilhar',
+                      tooltip: 'Share',
                     ),
                   ],
                 ),
@@ -204,7 +204,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                isInput ? 'INPUT (Prompt)' : 'OUTPUT (Resposta)',
+                isInput ? 'INPUT (Prompt)' : 'OUTPUT (Response)',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -228,7 +228,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
           if (message.metadata != null) ...[
             const SizedBox(height: 12),
             Text(
-              'Contexto: ${message.metadata!.entries.map((e) => "${e.key}: ${e.value}").join(" | ")}',
+              'Context: ${message.metadata!.entries.map((e) => "${e.key}: ${e.value}").join(" | ")}',
               style: TextStyle(
                 fontSize: 10,
                 color: Colors.grey.shade500,
@@ -242,11 +242,11 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
   }
 
   String _formatInteraction(ChatMessage input, ChatMessage output, String date) {
-    String text = '🤖 INTERAÇÃO IA ($date)\n';
+    String text = '🤖 AI INTERACTION ($date)\n';
     text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
     text += '📥 INPUT:\n${input.text}\n\n';
     if (input.metadata != null) {
-      text += '📝 CONTEXTO:\n${input.metadata!.entries.map((e) => "${e.key}: ${e.value}").join("\n")}\n\n';
+      text += '📝 CONTEXT:\n${input.metadata!.entries.map((e) => "${e.key}: ${e.value}").join("\n")}\n\n';
     }
     text += '📤 OUTPUT:\n${output.text}\n';
     text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
@@ -257,7 +257,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
     final text = _formatInteraction(input, output, date);
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Interação copiada para a área de transferência')),
+      const SnackBar(content: Text('Interaction copied to clipboard')),
     );
   }
 
@@ -272,13 +272,13 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(logFile.path)],
-          text: 'Histórico de Interações COPD AI Health',
+          text: 'COPD AI Health Interaction History',
         ),
       );
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nenhum log encontrado para partilhar')),
+          const SnackBar(content: Text('No log found to share')),
         );
       }
     }
@@ -296,7 +296,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nenhum log para exportar')),
+          const SnackBar(content: Text('No log to export')),
         );
       }
     }
@@ -306,19 +306,19 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Limpar Histórico?'),
+        title: const Text('Clear History?'),
         content: const Text(
-          'Isto irá apagar permanentemente o log de interações com a IA. Esta ação não pode ser desfeita.',
+          'This will permanently delete the AI interaction log. This action cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Limpar'),
+            child: const Text('Clear'),
           ),
         ],
       ),
@@ -332,7 +332,7 @@ class _AIInteractionsScreenState extends State<AIInteractionsScreen> {
       _loadLog();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Histórico de interações limpo')),
+          const SnackBar(content: Text('Interaction history cleared')),
         );
       }
     }

@@ -225,7 +225,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       _appState.addChatMessage(
         ChatMessage(
-          text: 'Desculpe, ocorreu um erro: $e',
+          text: 'Sorry, an error occurred: $e',
           isUser: false,
           timestamp: DateTime.now(),
         ),
@@ -412,7 +412,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       _appState.addChatMessage(
         ChatMessage(
-          text: 'Desculpe, ocorreu um erro: $e',
+          text: 'Sorry, an error occurred: $e',
           isUser: false,
           timestamp: DateTime.now(),
         ),
@@ -443,7 +443,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 onPressed: () => widget.scaffoldKey!.currentState?.openDrawer(),
               )
             : null,
-        title: const Text('Chat de Saúde'),
+        title: const Text('Health Chat'),
         actions: [
           if (_appState.chatHistory.length > 1)
             IconButton(
@@ -462,7 +462,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       });
                       _bootstrapQuestionnaire();
                     },
-              tooltip: 'Reiniciar questionário',
+              tooltip: 'Restart questionnaire',
             ),
         ],
       ),
@@ -499,8 +499,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     decoration: InputDecoration(
                       hintText:
                           _questionnaireState != QuestionnaireState.completed
-                          ? 'Escreve a tua resposta...'
-                          : 'Escreve a tua mensagem...',
+                          ? 'Type your answer...'
+                          : 'Type your message...',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,

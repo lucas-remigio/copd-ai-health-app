@@ -7,7 +7,7 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize formatting for the specific locale
-  await initializeDateFormatting('pt_PT', null);
+  await initializeDateFormatting('en_US', null);
   await dotenv.load(fileName: ".env");
   runApp(const MainApp());
 }
@@ -18,7 +18,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Assistente de Saúde',
+      title: 'Health Assistant',
       theme: AppTheme.lightTheme,
       home: const LoadingScreen(),
       debugShowCheckedModeBanner: false,

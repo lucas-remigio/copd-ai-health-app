@@ -106,13 +106,13 @@ class _PlacesScreenState extends State<PlacesScreen> {
                 onPressed: () => widget.scaffoldKey!.currentState?.openDrawer(),
               )
             : null,
-        title: const Text('Locais Próximos'),
+        title: const Text('Nearby Places'),
         actions: [
           if (_hasSearched)
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _fetchNearbyPlaces,
-              tooltip: 'Atualizar',
+              tooltip: 'Refresh',
             ),
         ],
       ),
@@ -168,7 +168,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Descobrir por Perto',
+              'Discover Nearby',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -177,7 +177,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Encontre lugares interessantes para caminhar por perto',
+              'Find interesting places to walk nearby',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: AppTheme.textSecondary),
             ),
@@ -185,7 +185,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ElevatedButton.icon(
               onPressed: _currentPosition == null ? null : _fetchNearbyPlaces,
               icon: const Icon(Icons.search),
-              label: const Text('Procurar Locais Próximos'),
+              label: const Text('Search Nearby Places'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
@@ -196,7 +196,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             if (_currentPosition == null) ...[
               const SizedBox(height: 16),
               const Text(
-                'Obtendo sua localização...',
+                'Getting your location...',
                 style: TextStyle(fontSize: 12, color: AppTheme.textTertiary),
               ),
             ],
@@ -220,7 +220,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Nenhum local encontrado por perto',
+              'No places found nearby',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -229,7 +229,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Tente procurar numa área diferente',
+              'Try searching in a different area',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppTheme.textSecondary),
             ),
@@ -275,7 +275,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
         onTap: () async {
           if (place.latitude == null || place.longitude == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Localização não disponível')),
+              const SnackBar(content: Text('Location not available')),
             );
             return;
           }
@@ -289,7 +289,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
           } catch (e) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Erro ao abrir Google Maps: $e')),
+                SnackBar(content: Text('Error opening Google Maps: $e')),
               );
             }
           }

@@ -29,17 +29,17 @@ class Place {
 
   String get distanceInKm => distance != null
       ? '${(distance! / 1000).toStringAsFixed(2)} km'
-      : 'Distância desconhecida';
+      : 'Unknown distance';
 
   String get durationInMinutes {
     if (duration == null) return '';
     final minutes = (duration! / 60).round();
-    return '~$minutes min a pé';
+    return '~$minutes min walk';
   }
 
   String get distanceInSteps {
-    if (distance == null) return 'Distância desconhecida';
+    if (distance == null) return 'Unknown distance';
     final steps = (distance! / 0.762).round(); // Average step length ~0.762m
-    return '$steps passos';
+    return '$steps steps';
   }
 }

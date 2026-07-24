@@ -86,7 +86,7 @@ class AppStateManager {
         _chatHistory.addAll(history);
         debugPrint('✅ Loaded ${history.length} messages from local storage');
       } else {
-        clearChatHistory(); // Set default welcome message
+        clearChatHistory(); // Start empty; questionnaire populates the chat
       }
     } catch (e) {
       debugPrint('⚠️ Chat history loading failed: $e');
@@ -148,17 +148,9 @@ class AppStateManager {
     _historyService.saveHistory(_chatHistory);
   }
 
-  /// Clear chat history (keeps welcome message)
+  /// Clear chat history completely. The questionnaire flow repopulates it.
   void clearChatHistory() {
     _chatHistory.clear();
-    _chatHistory.add(
-      ChatMessage(
-        text:
-            'Olá! Sou o seu assistente de saúde. Pergunte-me sobre sugestões de caminhada, metas de passos ou locais próximos para explorar!',
-        isUser: false,
-        timestamp: DateTime.now(),
-      ),
-    );
     _chatUpdateController.add(null);
     _historyService.saveHistory(_chatHistory);
   }
@@ -256,8 +248,10 @@ class AppStateManager {
     for (int i = 0; i < 7; i++) {
       final day = now.subtract(Duration(days: i));
       final dayKey = DateTime(day.year, day.month, day.day);
-      // Random steps between 3000 and 12000
-      mockHistory[dayKey] = 3000 + random.nextInt(9000);
+      // Today mirrors the live/overridden count; past days are random.
+      mockHistory[dayKey] = i == 0
+          ? _stepService.currentStepCount
+          : 3000 + random.nextInt(9000);
     }
     
     _stepService.setDebugHistoryOverride(mockHistory);

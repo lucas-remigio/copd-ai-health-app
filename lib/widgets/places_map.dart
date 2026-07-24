@@ -48,7 +48,7 @@ class _PlacesMapState extends State<PlacesMap> {
     if (place.latitude == null || place.longitude == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Localização não disponível')),
+          const SnackBar(content: Text('Location not available')),
         );
       }
       return;
@@ -63,7 +63,7 @@ class _PlacesMapState extends State<PlacesMap> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao abrir Google Maps: $e')),
+          SnackBar(content: Text('Error opening Google Maps: $e')),
         );
       }
     }
@@ -81,7 +81,7 @@ class _PlacesMapState extends State<PlacesMap> {
           widget.userPosition.longitude,
         ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-        infoWindow: const InfoWindow(title: 'A Sua Localização'),
+        infoWindow: const InfoWindow(title: 'Your Location'),
       ),
     );
 
@@ -98,7 +98,7 @@ class _PlacesMapState extends State<PlacesMap> {
             ),
             infoWindow: InfoWindow(
               title: place.name,
-              snippet: '${place.distanceInKm} • Toque para direções',
+              snippet: '${place.distanceInKm} • Tap for directions',
             ),
             onTap: () => _onMarkerTapped('place_$i'),
           ),

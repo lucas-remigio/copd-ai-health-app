@@ -55,21 +55,21 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Questionário Indisponível'),
+        title: const Text('Questionnaire Unavailable'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('O questionário semanal já foi concluído.'),
+            const Text('The weekly questionnaire has already been completed.'),
             const SizedBox(height: 16),
             Text(
-              'Próxima disponibilidade:',
+              'Next available:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.grey.shade700,
               ),
             ),
-            Text('$dateStr às $timeStr'),
+            Text('$dateStr at $timeStr'),
           ],
         ),
         actions: [
@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Text(
-                    'Assistente de Saúde',
+                    'Health Assistant',
                     style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('Histórico de IA'),
+              title: const Text('AI History'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -128,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.analytics_outlined),
-              title: const Text('Métricas de Performance'),
+              title: const Text('Performance Metrics'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.bug_report_outlined),
-              title: const Text('Testar Modelo AI'),
+              title: const Text('Test AI Model'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -168,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.refresh, color: Colors.red),
                 title: const Text(
-                  'Reset Questionário',
+                  'Reset Questionnaire',
                   style: TextStyle(color: Colors.red),
                 ),
                 onTap: () async {
@@ -176,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   await _appState.resetQuestionnaire();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Questionário resetado!')),
+                      const SnackBar(content: Text('Questionnaire reset!')),
                     );
                   }
                 },
@@ -184,14 +184,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.bar_chart, color: Colors.red),
                 title: const Text(
-                  'Mock Histórico',
+                  'Mock History',
                   style: TextStyle(color: Colors.red),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   _appState.mockWeeklyHistory();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Histórico preenchido com dados aleatórios!')),
+                    const SnackBar(content: Text('History filled with random data!')),
                   );
                 },
               ),
@@ -222,9 +222,9 @@ class _HomeScreenState extends State<HomeScreen> {
           items: [
             const BottomNavigationBarItem(
               icon: Icon(Icons.directions_walk),
-              label: 'Passos',
+              label: 'Steps',
             ),
-            const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Locais'),
+            const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Places'),
             BottomNavigationBarItem(
               icon: Badge(
                 isLabelVisible: isChatAvailable,

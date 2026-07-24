@@ -104,7 +104,7 @@ class _AITestScreenState extends State<AITestScreen> {
         if (_cancelRequested || !mounted) return;
         setState(() {
           _currentStatus =
-              '🌡️ A arrefecer o dispositivo... '
+              '🌡️ Cooling down the device... '
               '${elapsed.inSeconds}s (headroom ${headroom.toStringAsFixed(2)})';
         });
       },
@@ -115,7 +115,7 @@ class _AITestScreenState extends State<AITestScreen> {
     setState(() {
       _isRunning = false;
       _currentStatus = _cancelRequested
-          ? '🛑 Cancelado — resultados parciais guardados'
+          ? '🛑 Cancelled - partial results saved'
           : 'Tests completed!';
       _cancelRequested = false;
     });
@@ -124,7 +124,7 @@ class _AITestScreenState extends State<AITestScreen> {
   void _cancelRun() {
     setState(() {
       _cancelRequested = true;
-      _currentStatus = '🛑 A cancelar... (a terminar o teste atual)';
+      _currentStatus = '🛑 Cancelling... (finishing the current test)';
     });
     _testRunner.cancelRun();
   }
@@ -228,7 +228,7 @@ class _AITestScreenState extends State<AITestScreen> {
             : const Icon(Icons.play_arrow),
         label: Text(
           _isRunning
-              ? (_cancelRequested ? 'A cancelar...' : 'Cancelar')
+              ? (_cancelRequested ? 'Cancelling...' : 'Cancel')
               : 'Run Tests',
         ),
         backgroundColor: _isRunning
@@ -286,13 +286,13 @@ class _AITestScreenState extends State<AITestScreen> {
                 ? null
                 : (value) => setState(() => _coolingEnabled = value),
             title: const Text(
-              'Arrefecimento térmico entre testes',
+              'Thermal cooldown between tests',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             subtitle: Text(
               _coolingEnabled
-                  ? 'Ativo — espera arrefecer antes de cada teste'
-                  : '⚠️ Desativado — corrida completa sem controlo de throttling',
+                  ? 'Active - waits to cool down before each test'
+                  : '⚠️ Disabled - full run without throttling control',
               style: TextStyle(
                 fontSize: 12,
                 color: _coolingEnabled ? Colors.grey[600] : Colors.orange,
@@ -346,7 +346,7 @@ class _AITestScreenState extends State<AITestScreen> {
               const Icon(Icons.thermostat, color: Colors.orange),
               const SizedBox(width: 8),
               Text(
-                'Temperatura: $tempText',
+                'Temperature: $tempText',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -365,7 +365,7 @@ class _AITestScreenState extends State<AITestScreen> {
               height: 160,
               child: Center(
                 child: Text(
-                  'A recolher dados de temperatura...',
+                  'Collecting temperature data...',
                   style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
               ),
@@ -374,7 +374,7 @@ class _AITestScreenState extends State<AITestScreen> {
             TemperatureChart(samples: List<double>.from(_tempSamples)),
             const SizedBox(height: 4),
             Text(
-              '${_tempSamples.length} amostras · '
+              '${_tempSamples.length} samples · '
               'min ${_tempSamples.reduce((a, b) => a < b ? a : b).toStringAsFixed(1)}° · '
               'max ${_tempSamples.reduce((a, b) => a > b ? a : b).toStringAsFixed(1)}°',
               style: TextStyle(fontSize: 11, color: Colors.grey[500]),

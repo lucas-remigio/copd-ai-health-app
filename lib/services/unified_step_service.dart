@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:copd_ai_health_app/services/health_service.dart';
 import 'package:copd_ai_health_app/services/pedometer_service.dart';
@@ -23,6 +24,15 @@ class StepMethodInfo {
 }
 
 class UnifiedStepService {
+  // ── DEBUG ────────────────────────────────────────────────────────────────
+  // When true, behave as if Health Connect were the active method so the chat
+  // questionnaire is reachable. Today's count is a random value (like the mock
+  // history), while debug7DaysAverage ONLY forces the 7-day average that the
+  // questionnaire keys off (goal achieved vs not). Set to false for the real
+  // device flow.
+  static const bool debugOverrideSteps = true;
+  static const int debug7DaysAverage = 12000;
+
   final _healthService = HealthService();
   final _pedometerService = PedometerService();
   final _stepDetector = StepDetectorService();
@@ -42,6 +52,7 @@ class UnifiedStepService {
 
   /// Returns average daily steps from Health Connect when that method is active.
   Future<int?> getAverageDailyStepsFromHealthConnect({int days = 7}) async {
+    if (debugOverrideSteps) return debug7DaysAverage;
     if (_activeMethod != StepDetectionMethod.healthConnect) return null;
 
     try {
@@ -69,28 +80,28 @@ class UnifiedStepService {
   StepMethodInfo get methodInfo {
     const methodData = {
       StepDetectionMethod.healthConnect: StepMethodInfo(
-        description: 'A usar Google Fit / Health Connect (mais preciso)',
+        description: 'Using Google Fit / Health Connect (most accurate)',
         backgroundColor: Color(0xFFE8F5E9), // Colors.green[50]
         iconColor: Colors.green,
         textColor: Color(0xFF1B5E20), // Colors.green[900]
         icon: Icons.favorite,
       ),
       StepDetectionMethod.pedometer: StepMethodInfo(
-        description: 'A usar contador de passos do hardware (preciso)',
+        description: 'Using hardware step counter (accurate)',
         backgroundColor: Color(0xFFE3F2FD), // Colors.blue[50]
         iconColor: Colors.blue,
         textColor: Color(0xFF0D47A1), // Colors.blue[900]
         icon: Icons.directions_walk,
       ),
       StepDetectionMethod.accelerometer: StepMethodInfo(
-        description: 'A usar sensores de movimento (precisão moderada)',
+        description: 'Using motion sensors (moderate accuracy)',
         backgroundColor: Color(0xFFFFF3E0), // Colors.orange[50]
         iconColor: Colors.orange,
         textColor: Color(0xFFE65100), // Colors.orange[900]
         icon: Icons.sensors,
       ),
       StepDetectionMethod.none: StepMethodInfo(
-        description: 'Nenhum método de deteção de passos disponível',
+        description: 'No step detection method available',
         backgroundColor: Color(0xFFFAFAFA), // Colors.grey[50]
         iconColor: Colors.grey,
         textColor: Color(0xFF212121), // Colors.grey[900]
@@ -106,6 +117,17 @@ class UnifiedStepService {
   /// Initialize and find the best available step detection method
   Future<bool> initialize() async {
     if (_isInitialized) return true;
+
+    if (debugOverrideSteps) {
+      _activeMethod = StepDetectionMethod.healthConnect;
+      _stepCount = 3000 + Random().nextInt(9000); // random "today"
+      _stepController.add(_stepCount);
+      _isInitialized = true;
+      debugPrint(
+        '🐞 Step override ON — today: $_stepCount, questionnaire 7-day avg forced to $debug7DaysAverage',
+      );
+      return true;
+    }
 
     debugPrint('🔍 Searching for available step detection methods...');
 

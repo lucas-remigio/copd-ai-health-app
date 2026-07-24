@@ -118,19 +118,19 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Definir Meta Diária'),
+        title: const Text('Set Daily Goal'),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
-            labelText: 'Passos',
-            suffixText: 'passos',
+            labelText: 'Steps',
+            suffixText: 'steps',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -140,7 +140,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
               }
               Navigator.pop(context);
             },
-            child: const Text('Guardar'),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -151,7 +151,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Passos')),
+        appBar: AppBar(title: const Text('Steps')),
         body: ErrorView(errorMessage: _errorMessage!, onRetry: _initialize),
       );
     }
@@ -173,12 +173,12 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                 onPressed: () => widget.scaffoldKey!.currentState?.openDrawer(),
               )
             : null,
-        title: const Text('Passos Diários'),
+        title: const Text('Daily Steps'),
         actions: [
           IconButton(
             icon: const Icon(Icons.flag),
             onPressed: _showGoalDialog,
-            tooltip: 'Definir meta',
+            tooltip: 'Set goal',
           ),
           PopupMenuButton<String>(
             onSelected: (value) async {
@@ -193,15 +193,15 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'add100',
-                child: Text('Adicionar 100 passos'),
+                child: Text('Add 100 steps'),
               ),
               const PopupMenuItem(
                 value: 'add1000',
-                child: Text('Adicionar 1000 passos'),
+                child: Text('Add 1000 steps'),
               ),
               const PopupMenuItem(
                 value: 'reset',
-                child: Text('Reiniciar passos'),
+                child: Text('Reset steps'),
               ),
             ],
           ),
@@ -268,7 +268,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                               ),
                             ),
                             const Text(
-                              'passos',
+                              'steps',
                               style: TextStyle(
                                 fontSize: 18,
                                 color: AppTheme.textSecondary,
@@ -302,7 +302,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Média Diária (7 dias)',
+                                  'Daily Average (7 days)',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AppTheme.textSecondary,
@@ -310,7 +310,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '$averageSteps passos',
+                                  '$averageSteps steps',
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -348,7 +348,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Meta Diária',
+                                'Daily Goal',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppTheme.textSecondary,
@@ -356,7 +356,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '$_stepGoal passos',
+                                '$_stepGoal steps',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
@@ -395,7 +395,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Passos em Falta',
+                                  'Steps Remaining',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AppTheme.textSecondary,
@@ -458,7 +458,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
                             const SizedBox(width: 16),
                             const Expanded(
                               child: Text(
-                                'Meta Alcançada! 🎉',
+                                'Goal Reached! 🎉',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -504,7 +504,7 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: entries.map((entry) {
-          final dayName = DateFormat('E', 'pt_PT').format(entry.key).substring(0, 1).toUpperCase();
+          final dayName = DateFormat('E', 'en_US').format(entry.key).substring(0, 1).toUpperCase();
           final dateNum = DateFormat('dd').format(entry.key);
           final isToday = entry.key.day == DateTime.now().day;
           final dayProgress = (entry.value / _stepGoal).clamp(0.01, 1.0);
@@ -513,11 +513,11 @@ class _StepsScreenState extends State<StepsScreen> with WidgetsBindingObserver {
 
           return GestureDetector(
             onTap: () {
-              final fullDate = DateFormat('EEEE, d MMMM', 'pt_PT').format(entry.key);
+              final fullDate = DateFormat('EEEE, d MMMM', 'en_US').format(entry.key);
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('$fullDate: ${entry.value} passos'),
+                  content: Text('$fullDate: ${entry.value} steps'),
                   duration: const Duration(seconds: 2),
                   behavior: SnackBarBehavior.floating,
                 ),

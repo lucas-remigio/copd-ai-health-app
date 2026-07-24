@@ -14,7 +14,7 @@ class LoadingScreen extends StatefulWidget {
 class _LoadingScreenState extends State<LoadingScreen> {
   final AILlamaService _aiService = AILlamaService();
   final AppStateManager _appState = AppStateManager();
-  String _status = 'A inicializar...';
+  String _status = 'Initializing...';
   double _progress = 0.0;
   bool _hasError = false;
 
@@ -33,7 +33,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
     try {
       // Initialize performance metrics service
       _safeSetState(() {
-        _status = 'A inicializar sistema de métricas...';
+        _status = 'Initializing metrics system...';
         _progress = 0.0;
       });
       await PerformanceMetricsService().initialize();
@@ -43,7 +43,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       // Then initialize app state (steps, location, etc.)
       _safeSetState(() {
-        _status = 'A inicializar serviços da app...';
+        _status = 'Initializing app services...';
         _progress = 0.0;
       });
 
@@ -58,7 +58,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
       }
     } catch (e) {
       _safeSetState(() {
-        _status = 'Falha ao inicializar: $e';
+        _status = 'Failed to initialize: $e';
         _hasError = true;
       });
     }
@@ -67,7 +67,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
   Future<void> _initializeAI() async {
     try {
       _safeSetState(() {
-        _status = 'A carregar modelo de IA...';
+        _status = 'Loading AI model...';
         _progress = 0.0;
       });
 
@@ -76,7 +76,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         _safeSetState(() {
           _progress = progress;
           _status =
-              'A carregar modelo de IA... ${(progress * 100).toStringAsFixed(1)}%';
+              'Loading AI model... ${(progress * 100).toStringAsFixed(1)}%';
         });
       };
 
@@ -122,12 +122,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   onPressed: () {
                     setState(() {
                       _hasError = false;
-                      _status = 'A tentar novamente...';
+                      _status = 'Retrying...';
                       _progress = 0.0;
                     });
                     _initialize();
                   },
-                  child: const Text('Tentar novamente'),
+                  child: const Text('Try again'),
                 ),
               ],
             ],
